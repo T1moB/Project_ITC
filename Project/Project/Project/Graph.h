@@ -331,24 +331,42 @@ void Graph<NodeType, ArcType>::AStar(Node* start, Node *goal) {
 		Node* current = GetCheapestNode(openList);
 		closedList.push_back(current);
 		if (current == goal) {
-
+			break;
 		}
-		vector<Arc*> arcs = current->arcList();
-		for (int i = 0; i < arcs.size(); i++)
+		typedef list<Arc> arclist;
+		list<Arc> arcs = current->arcList();
+		auto it = arcs.begin();
+		for (; it != arcs.end(); ++it)
 		{
-			Node* neighbour = arcs[i]->Node();
+			Arc arc = *it;
+			Node* neighbour = arc.node();
+			if (neighbour->IsObtacle()) { continue; }
 			for (int j = 0; j < closedList.size(); j++)
 			{
 				if (neighbour == closedList[j]) { continue; }
 			}
-			float gScore = current->gValue + arcs[i]->Weight();
-			//if(openList.)
-			openList.push_back(neighbour);
+			float gScore = current->gValue + arc.node()->Heuristic(goal);
+			
+			for (int j = 0; j < openList.size(); j++)
+			{
+				if (openList[j] == neighbour)
+					break;
+				openList.push_back(neighbour);
+			}
+			if (gScore >= neighbour->gValue) { continue; }
+			for (int j = 0; j < cameFrom.size(); j++)
+			{
+				if (cameFrom[j] == neighbour) { cameFrom[j] = current; }
+			}
+			//cameFrom[neighbour] = current;
+			neighbour->gValue = gScore;
+			neighbour->hValue = neighbour->Heuristic(goal);
 		}
 	}
 
 
 }
+
 
 // ----------------------------------------------------------------
 //  Name:           GetCheapestNode
@@ -357,26 +375,25 @@ void Graph<NodeType, ArcType>::AStar(Node* start, Node *goal) {
 //  Return Value:   The Node with the lowest f value.
 // ----------------------------------------------------------------
 template<class NodeType, class ArcType>
-GraphNode<NodeType, ArcType>* Graph<NodeType, ArcType>::GetCheapestNode( vector<Node*> openList) {
+GraphNode<NodeType, ArcType>* Graph<NodeType, ArcType>::GetCheapestNode(vector<Node*> openList) {
 	Node* cheapest;
 
 	float bestF = 9999;
 	float index = -1;
 
-	for (int i = 0; i < openList; i++)
+	for (int i = 0; i < openList.size(); i++)
 	{
-		if (openList[i]->GetF() < bestF)//Finding the cheapest cell in this list
+		if (openList[i]->GetFValue() < bestF)//Finding the cheapest cell in this list
 		{
-			bestF = openList[i]->GetF();
+			bestF = openList[i]->GetFValue();
 			index = i;
 		}
 	}
 
-	if (index >= 0) {
-		cheapest = openList[index];
-		openList.erase(index);
-	}
-
+	cheapest = openList[index];
+	auto it = openList.begin();
+	advance(it, index);
+	openList.erase(it);
 
 	return cheapest;
 }

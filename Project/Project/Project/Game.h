@@ -1,6 +1,7 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include "Grid.h"
+#include "MainGraph.h"
 
 class Game
 {
@@ -12,6 +13,7 @@ public:
 	bool IsRunning();
 	sf::RenderWindow m_window;
 	Grid grid;
+	MainGraph mg;
 	/*Game(const Game&) = delete;
 	Game& operator=(const Game&) = delete;
 	~Game();*/

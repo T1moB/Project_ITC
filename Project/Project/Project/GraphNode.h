@@ -24,20 +24,12 @@ private:
 // -------------------------------------------------------
     NodeType m_data;
 
-// -------------------------------------------------------
-// Description: the g value
-// -------------------------------------------------------
-	float gValue;
 
-// -------------------------------------------------------
-// Description: the h value
-// -------------------------------------------------------
-	float hValue;
 
 // -------------------------------------------------------
 // Description: if it's an obstacle
 // -------------------------------------------------------
-	bool obstacle;
+	bool obstacle = false;
 
 // -------------------------------------------------------
 // Description: the x position
@@ -102,10 +94,40 @@ public:
 		return gValue + hValue;
 	}
 
+	void SetAsObstacle() {
+		obstacle = true;
+	}
+
+	bool IsObtacle() {
+		return obstacle;
+	}
+
+	void SetPosition(float x, float y) {
+		xPos = x; yPos = y;
+	}
+
+	float GetXPos() {
+		return xPos;
+	}
+
+	float GetYPos() {
+		return yPos;
+	}
+
+	// -------------------------------------------------------
+	// Description: the g value
+	// -------------------------------------------------------
+	float gValue;
+
+	// -------------------------------------------------------
+	// Description: the h value
+	// -------------------------------------------------------
+	float hValue;
+
     Arc* getArc( Node* pNode );    
     void addArc( Node* pNode, ArcType pWeight );
     void removeArc( Node* pNode );
-	void Heuristic(Node* goal);
+	float Heuristic(Node* goal);
 
 
 };
@@ -186,12 +208,12 @@ void GraphNode<NodeType, ArcType>::removeArc( Node* node ) {
 //  Return Value:   None.
 // ----------------------------------------------------------------
 template<typename NodeType, typename ArcType>
-void GraphNode<NodeType, ArcType>::Heuristic(Node* goal) {
+float GraphNode<NodeType, ArcType>::Heuristic(Node* goal) {
 	float D = 1;
 	float D2 = std::sqrt(2);
-	//float dx = std::abs(node.x - goal.x);
-	//float dy = std::abs(node.y - goal.y);
-	return 0;// D * (dx + dy) + (D2 - 2 * D) * std::min(dx, dy);
+	float dx = std::abs(xPos - goal->GetXPos());
+	float dy = std::abs(yPos - goal->GetYPos());
+	return  D * (dx + dy) + (D2 - 2 * D) * std::min(dx, dy);
 }
 
 #include "GraphArc.h"
