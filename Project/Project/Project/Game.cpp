@@ -16,11 +16,12 @@ Game::Game() :
 
 void Game::Init() {
 	
-	//grid.CreateGrid();
+	grid.CreateGrid();
 	//NodeCreator nc;
 	//nc.Create();
 	mg.CreateGraph();
-	grid.CreateGridFromGraph(mg.m_graph);
+	//grid.CreateGridFromGraph(mg.m_graph);
+	//mg.AStar();
 }
 
 void Game::Update() {
@@ -35,9 +36,9 @@ void Game::Update() {
 
 void Game::Draw() {
 
-	m_window.clear();
+	m_window.clear(sf::Color::Black);
 	//grid.DrawFromGraph(mg.m_graph);
-	grid.Draw();
+	//grid.Draw();
 	m_window.display();
 }
 

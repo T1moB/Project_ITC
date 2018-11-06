@@ -5,6 +5,7 @@
 #include <queue>
 #include <vector>
 #include <functional>
+#include <iostream>
 
 using namespace std;
 
@@ -327,9 +328,11 @@ void Graph<NodeType, ArcType>::AStar(Node* start, Node *goal) {
 	vector<Node*> cameFrom;
 
 	start->gValue = 0;
+	start->hValue = start->Heuristic(goal);
 	while (!openList.empty()) {
 		Node* current = GetCheapestNode(openList);
 		closedList.push_back(current);
+		cout << "The node: " << current->data() << " is getting checked" << endl;
 		if (current == goal) {
 			break;
 		}
@@ -340,20 +343,31 @@ void Graph<NodeType, ArcType>::AStar(Node* start, Node *goal) {
 		{
 			Arc arc = *it;
 			Node* neighbour = arc.node();
+			cout << "The neighbour: " << neighbour->data() << " is getting checked" << endl;
 			if (neighbour->IsObtacle()) { continue; }
 			for (int j = 0; j < closedList.size(); j++)
 			{
-				if (neighbour == closedList[j]) { continue; }
+				if (neighbour == closedList[j]) { break; }
 			}
-			float gScore = current->gValue + arc.node()->Heuristic(goal);
-			
+			float gScore = current->gValue + arc.weight();
+
+			bool checkGValue = false, addToList = false;
 			for (int j = 0; j < openList.size(); j++)
 			{
 				if (openList[j] == neighbour)
+				{
+					checkGValue = true;
+					addToList = false;
 					break;
-				openList.push_back(neighbour);
+				}
+				addToList = true;
 			}
-			if (gScore >= neighbour->gValue) { continue; }
+			if (addToList)
+			{
+				openList.push_back(neighbour);
+				checkGValue = false;
+			}
+			if (checkGValue && gScore >= neighbour->gValue) { continue; }
 			for (int j = 0; j < cameFrom.size(); j++)
 			{
 				if (cameFrom[j] == neighbour) { cameFrom[j] = current; }

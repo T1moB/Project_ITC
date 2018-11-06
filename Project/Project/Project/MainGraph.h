@@ -10,6 +10,7 @@ public:
 	MainGraph();
 	~MainGraph();
 	void CreateGraph();
+	void AStar();
 	Graph<std::string, int> m_graph;
 	
 };

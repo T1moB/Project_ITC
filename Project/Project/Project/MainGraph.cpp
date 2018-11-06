@@ -36,18 +36,34 @@ void MainGraph::CreateGraph() {
 
 	myfile.close();
 	myfile.open("Data/arcs.txt");
-
-	int from, to, weight;
-	while (myfile >> from >> to >> weight) {
+	int from = 0, to= 0;
+	float weight;
+	while (from != 99 && to != 98) {
+		myfile >> from >> to >> weight;
 		m_graph.addArc(from, to, weight);
 	}
 	myfile.close();
 
-	//Grid grid;
-	//grid.CreateGridFromGraph(graph);
-	m_graph.AStar(m_graph.nodeIndex(5), m_graph.nodeIndex(55));
+	int sizeX = 108;
+	int sizeY = 72;
+	for (int i = 0; i < 10; i++)
+	{
+		for (int j = 0; j < 10; j++)
+		{
+			int index = i * 10 + j;
+			m_graph.nodeIndex(index)->SetPosition(j * sizeX, i * sizeY);
+			int r = (int)std::rand() % 10;
+			if (r == 0 || index == 25)
+				m_graph.nodeIndex(index)->SetAsObstacle();
+		}
+	}
 	//std::function<void(GraphNode<std::string,int> *)> f_visit = &visit;
+	m_graph.AStar(m_graph.nodeIndex(5), m_graph.nodeIndex(55));
 	//graph.breadthFirst(graph.nodeIndex(0), f_visit);
+}
+
+void MainGraph::AStar() {
+	m_graph.AStar(m_graph.nodeIndex(5), m_graph.nodeIndex(55));
 }
 
 
