@@ -332,8 +332,9 @@ void Graph<NodeType, ArcType>::AStar(Node* start, Node *goal) {
 	while (!openList.empty()) {
 		Node* current = GetCheapestNode(openList);
 		closedList.push_back(current);
-		cout << "The node: " << current->data() << " is getting checked" << endl;
+		cout << "Checking" << current->data() << endl;
 		if (current == goal) {
+			cout << "Found Goal" << endl;
 			break;
 		}
 		typedef list<Arc> arclist;
@@ -343,7 +344,6 @@ void Graph<NodeType, ArcType>::AStar(Node* start, Node *goal) {
 		{
 			Arc arc = *it;
 			Node* neighbour = arc.node();
-			cout << "The neighbour: " << neighbour->data() << " is getting checked" << endl;
 			if (neighbour->IsObtacle()) { continue; }
 			for (int j = 0; j < closedList.size(); j++)
 			{
@@ -368,17 +368,28 @@ void Graph<NodeType, ArcType>::AStar(Node* start, Node *goal) {
 				checkGValue = false;
 			}
 			if (checkGValue && gScore >= neighbour->gValue) { continue; }
-			for (int j = 0; j < cameFrom.size(); j++)
+			/*for (int j = 0; j < cameFrom.size(); j++)
 			{
 				if (cameFrom[j] == neighbour) { cameFrom[j] = current; }
-			}
+			}*/
 			//cameFrom[neighbour] = current;
+			neighbour->setPrevious(current);
+			//cameFrom.push_back(neighbour);
 			neighbour->gValue = gScore;
 			neighbour->hValue = neighbour->Heuristic(goal);
 		}
 	}
 
+	for (Node* node = goal; node != NULL; node = node->previous()) {
+		cout << node->data() << endl;
+		node->SetPath();
+		cameFrom.push_back(node);
+	}
 
+	/*for (int i = 0; i < cameFrom.size(); i++)
+	{
+		cout << cameFrom[i]->data() << endl;
+	}*/
 }
 
 

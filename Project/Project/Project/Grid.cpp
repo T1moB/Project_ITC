@@ -1,5 +1,7 @@
 #include "Grid.h"
 #include <SFML/Graphics.hpp>
+#include <sstream>
+#include <random>
 #include "Game.h"
 #include <ctime>  
 
@@ -9,15 +11,14 @@ Game* _game;
 int sizeX, sizeY, gridSize;
 Grid::Grid(sf::RenderWindow & window) : m_window(window)
 {
-	
+	srand(time(0));
 	sizeX = window.getSize().x/10;	
-	//sizeX = 108;	
+	//sizeX = 80;	
 	sizeY = window.getSize().y/10;
-	//sizeY = 72;
+	//sizeY = 80;
 	gridSize = 10;
 	grid = new Vector2f[gridSize*gridSize];
 	obstacles = new bool[gridSize*gridSize];
-	srand(time(0));
 }
 
 
@@ -39,19 +40,19 @@ void Grid::CreateGrid() {
 	}
 }
 
-void Grid::CreateGridFromGraph(Graph<std::string, int> g ) {
+void Grid::CreateGridFromGraph(Graph<std::string, int>* g ) {
 	for (int i = 0; i < gridSize; i++)
 	{
 		for (int j = 0; j < gridSize; j++)
 		{
 			int index = i * gridSize + j;
 			grid[index] = Vector2f(j * sizeX, i * sizeY);
-			g.nodeIndex(index)->SetPosition(j * sizeX, i * sizeY);
+			g->nodeIndex(index)->SetPosition(j * sizeX, i * sizeY);
 			obstacles[index] = false;
-			int r = (int)std::rand() % 10;
-			if (r == 0) {
+			int r = rand() % 5;
+			if (r == 0 && index != 11 & index != 88) {
 				obstacles[index] = true;
-				//g.nodeIndex(index)->SetAsObstacle();
+				g->nodeIndex(index)->SetAsObstacle();
 			}
 		}
 	}
@@ -67,9 +68,9 @@ void Grid::Draw() {
 		for (int j = 0; j < gridSize; j++)
 		{
 			int index = i * gridSize + j;
-			if (obstacles[i*sizeY + j]) {
+			if (obstacles[index]) {
 				RectangleShape square(Vector2f(sizeX, sizeY));
-				square.setPosition(grid[i*gridSize + j]);
+				square.setPosition(grid[index].x, grid[index].y);
 				square.setFillColor(Color(128, 128, 128));
 				m_window.draw(square);
 			}
@@ -77,23 +78,38 @@ void Grid::Draw() {
 	}
 }
 
-void Grid::DrawFromGraph(Graph<std::string, int> g) {
-	RectangleShape background(Vector2f(m_window.getSize().x, m_window.getSize().y));
-	background.setFillColor(Color(10, 175, 10));
-	m_window.draw(background);
+void Grid::DrawFromGraph(Graph<std::string, int>* g, int range) {
+	//RectangleShape background(Vector2f(m_window.getSize().x, m_window.getSize().y));
+	//background.setFillColor(Color(10, 175, 10));
+	//m_window.draw(background);
+	Font font;
+	if (!font.loadFromFile("Data/OpenSans.ttf")) {
+		cout << "couldn't load file" << endl;
+	}
 	for (int i = 0; i < gridSize; i++)
 	{
 		for (int j = 0; j < gridSize; j++)
 		{
+			//for (int i = 0; i < range; i++)
+			//{
+
 			int index = i * gridSize + j;
-			if (g.nodeIndex(index)->IsObtacle()) {
-				RectangleShape square(Vector2f(sizeX, sizeY));
-				square.setPosition(g.nodeIndex(index)->GetXPos(), g.nodeIndex(index)->GetXPos());
+			RectangleShape square(Vector2f(sizeX, sizeY));
+			square.setPosition(g->nodeIndex(index)->GetXPos(), g->nodeIndex(index)->GetYPos());
+			//cout << "Position: " << g->nodeIndex(index)->GetXPos() << " , " << g->nodeIndex(index)->GetXPos() << endl;
+			//cout << "Drawing square at: " << square.getPosition().x << " , " << square.getPosition().y << endl;
+			//square.setSize(Vector2f(sizeX, sizeY));
+			square.setFillColor(Color(10, 175, 10));
+			if (g->nodeIndex(index)->IsObtacle()) {
 				square.setFillColor(Color(128, 128, 128));
-				m_window.draw(square);
 			}
+			else if (g->nodeIndex(index)->IsPath()) {
+				square.setFillColor(Color(0, 0, 255));
+			}
+			m_window.draw(square);
 		}
 	}
+	//}
 }
 
 Grid::~Grid()

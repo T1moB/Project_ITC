@@ -3,11 +3,15 @@
 #include "Grid.h"
 #include "NodeCreator.h"
 #include "MainGraph.h"
+#include <Windows.h>
 
 using namespace sf;
 
+bool isPressed = false;
+int range = 1;
+
 Game::Game() : 
-	m_window(VideoMode(1080, 720), "SFML works!"/*, sf::Style::Fullscreen*/),
+	m_window(VideoMode(800, 800), "SFML works!"/*, sf::Style::Fullscreen*/),
 	grid(m_window)
 {
 
@@ -16,11 +20,11 @@ Game::Game() :
 
 void Game::Init() {
 	
-	grid.CreateGrid();
+	//grid.CreateGrid();
 	//NodeCreator nc;
 	//nc.Create();
 	mg.CreateGraph();
-	//grid.CreateGridFromGraph(mg.m_graph);
+	grid.CreateGridFromGraph(&mg.m_graph);
 	//mg.AStar();
 }
 
@@ -32,12 +36,33 @@ void Game::Update() {
 		if (event.type == sf::Event::Closed)
 			m_window.close();
 	}
+	if (GetKeyState('X') & 0x8000) {
+		if (!isPressed) {
+			mg.AStar();
+			isPressed = true;
+		}
+	}
+	else if (GetKeyState(VK_RIGHT) & 0x8000) {
+		if (!isPressed) {
+			range++;
+			isPressed = true;
+		}
+	}
+	else if (GetKeyState(VK_ESCAPE) & 0x8000) {
+		if (!isPressed) {
+			m_window.close();
+			isPressed = true;
+		}
+	}
+	else {
+		isPressed = false;
+	}
 }
 
 void Game::Draw() {
 
-	m_window.clear(sf::Color::Black);
-	//grid.DrawFromGraph(mg.m_graph);
+	m_window.clear();
+	grid.DrawFromGraph(&mg.m_graph, range);
 	//grid.Draw();
 	m_window.display();
 }

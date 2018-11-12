@@ -32,14 +32,19 @@ private:
 	bool obstacle = false;
 
 // -------------------------------------------------------
+// Description: if it's part of  the path
+// -------------------------------------------------------
+	bool path = false;
+
+// -------------------------------------------------------
 // Description: the x position
 // -------------------------------------------------------
-	float xPos;
+	int xPos;
 
 // -------------------------------------------------------
 // Description: the y position
 // -------------------------------------------------------
-	float yPos;
+	int yPos;
 
 // -------------------------------------------------------
 // Description: list of arcs that the node has.
@@ -102,15 +107,23 @@ public:
 		return obstacle;
 	}
 
-	void SetPosition(float x, float y) {
+	void SetPath() {
+		path = true;
+	}
+
+	bool IsPath() {
+		return path;
+	}
+
+	void SetPosition(int x, int y) {
 		xPos = x; yPos = y;
 	}
 
-	float GetXPos() {
+	int GetXPos() {
 		return xPos;
 	}
 
-	float GetYPos() {
+	int GetYPos() {
 		return yPos;
 	}
 
