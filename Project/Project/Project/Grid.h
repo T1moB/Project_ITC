@@ -13,7 +13,7 @@ public:
 	void CreateGrid();
 	void CreateGridFromGraph(Graph<std::string, int> *g);
 	void Draw();
-	void DrawFromGraph(Graph<std::string, int> *g, int range);
+	void DrawFromGraph(Graph<std::string, int> *g);
 	sf::Vector2f *grid;
 	bool *obstacles;
 private:

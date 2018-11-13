@@ -6,6 +6,8 @@
 #include <vector>
 #include <functional>
 #include <iostream>
+#include <thread>
+#include <chrono>
 
 using namespace std;
 
@@ -54,6 +56,9 @@ public:
 	void adaptedBreadthFirst( Node* pCurrent, Node* pGoal );	
 	void AStar( Node* pCurrent, Node* pGoal );	
 	Node* GetCheapestNode(vector<Node*> openList);
+	void ThetaStar(Node* pCurrent, Node* pGoal);
+	void UpdateVertex(Node* pCurrent, Node* pNeighbour, vector<Node*> open);
+	bool LineOfSight(Node* pCurrent, Node* pNeighbour);
 };
 
 // ----------------------------------------------------------------
@@ -328,11 +333,14 @@ void Graph<NodeType, ArcType>::AStar(Node* start, Node *goal) {
 	vector<Node*> cameFrom;
 
 	start->gValue = 0;
-	start->hValue = start->Heuristic(goal);
+	start->hValue = start->Diagonal(goal);
 	while (!openList.empty()) {
 		Node* current = GetCheapestNode(openList);
+		//Node* current = openList.back();
+		//openList.pop_back();
 		closedList.push_back(current);
-		cout << "Checking" << current->data() << endl;
+
+		cout << "Checking current: " << current->data() << endl;
 		if (current == goal) {
 			cout << "Found Goal" << endl;
 			break;
@@ -344,6 +352,7 @@ void Graph<NodeType, ArcType>::AStar(Node* start, Node *goal) {
 		{
 			Arc arc = *it;
 			Node* neighbour = arc.node();
+			cout << "Checking neighbour: " << neighbour->data() << endl;
 			if (neighbour->IsObtacle()) { continue; }
 			for (int j = 0; j < closedList.size(); j++)
 			{
@@ -351,45 +360,42 @@ void Graph<NodeType, ArcType>::AStar(Node* start, Node *goal) {
 			}
 			float gScore = current->gValue + arc.weight();
 
-			bool checkGValue = false, addToList = false;
+			bool inOpen = false;
 			for (int j = 0; j < openList.size(); j++)
 			{
 				if (openList[j] == neighbour)
 				{
-					checkGValue = true;
-					addToList = false;
-					break;
+					inOpen = true;
 				}
-				addToList = true;
 			}
-			if (addToList)
-			{
-				openList.push_back(neighbour);
-				checkGValue = false;
+			if (!inOpen) {
+				neighbour->gValue = 99999;
+				neighbour->setPrevious(NULL);
 			}
-			if (checkGValue && gScore >= neighbour->gValue) { continue; }
-			/*for (int j = 0; j < cameFrom.size(); j++)
-			{
-				if (cameFrom[j] == neighbour) { cameFrom[j] = current; }
-			}*/
-			//cameFrom[neighbour] = current;
-			neighbour->setPrevious(current);
-			//cameFrom.push_back(neighbour);
-			neighbour->gValue = gScore;
-			neighbour->hValue = neighbour->Heuristic(goal);
+			float oldGValue = neighbour->gValue;
+			if (current->gValue + arc.weight() < neighbour->gValue) {
+				neighbour->gValue = current->gValue + arc.weight();
+				neighbour->hValue = neighbour->Diagonal(goal);
+				neighbour->setPrevious(current);
+				if ( neighbour->gValue < oldGValue) {
+					for (int i = 0; i < openList.size(); i++)
+					{
+						if (openList[i] == neighbour) {
+							auto it = openList.begin();
+							advance(it, i);
+							openList.erase(it);
+						}
+					}
+					openList.push_back(neighbour);
+				}
+			}
 		}
 	}
-
 	for (Node* node = goal; node != NULL; node = node->previous()) {
 		cout << node->data() << endl;
 		node->SetPath();
 		cameFrom.push_back(node);
 	}
-
-	/*for (int i = 0; i < cameFrom.size(); i++)
-	{
-		cout << cameFrom[i]->data() << endl;
-	}*/
 }
 
 
@@ -421,6 +427,153 @@ GraphNode<NodeType, ArcType>* Graph<NodeType, ArcType>::GetCheapestNode(vector<N
 	openList.erase(it);
 
 	return cheapest;
+}
+
+// ----------------------------------------------------------------
+//  Name:           ThetaStar
+//  Description:    Performs a ThetaStar traversal the starting node
+//                  specified as an input parameter, terminating at the goal.
+//  Arguments:      The first parameter is the starting node.
+//                  The second parameter is the goal node.
+//  Return Value:   None.
+// ----------------------------------------------------------------
+template<class NodeType, class ArcType>
+void Graph<NodeType, ArcType>::ThetaStar(Node* start, Node *goal) {
+	vector<Node*> closedList;
+	vector<Node*> openList = { start };
+	vector<Node*> cameFrom;
+
+	start->gValue = 0;
+	start->hValue = start->Euclidean(goal);
+	while (!openList.empty()) {
+		Node* current = GetCheapestNode(openList);
+		closedList.push_back(current);
+		cout << "Checking currnet: " << current->data() << endl;
+		if (current == goal) {
+			cout << "Found Goal" << endl;
+			break;
+		}
+		typedef list<Arc> arclist;
+		list<Arc> arcs = current->arcList();
+		auto it = arcs.begin();
+		for (; it != arcs.end(); ++it)
+		{
+			Arc arc = *it;
+			Node* neighbour = arc.node();
+			cout << "Checking neighbour: " << neighbour->data() << endl;
+			if (neighbour->IsObtacle()) { continue; }
+			for (int j = 0; j < closedList.size(); j++)
+			{
+				if (neighbour == closedList[j]) { continue; }
+			}
+			float gScore = current->gValue + arc.weight();
+
+			bool checkGValue = true, addToList = false;
+			for (int j = 0; j < openList.size(); j++)
+			{
+				if (openList[j] == neighbour)
+				{
+					checkGValue = false;
+					break;
+				}
+			}
+			if (checkGValue) {
+				neighbour->gValue = 9999;
+				neighbour->setPrevious(NULL);
+			}
+			if (LineOfSight(current->previous(), neighbour)) {
+				if (current->previous()->gValue + current->previous()->Euclidean(neighbour) < neighbour->gValue) {
+					neighbour->gValue = current->previous()->gValue + current->previous()->Euclidean(neighbour);
+					neighbour->setPrevious(current->previous());
+					for (int i = 0; i < openList.size(); i++)
+					{
+						if (openList[i] == neighbour) {
+							auto it = openList.begin();
+							advance(it, i);
+							openList.erase(it);
+						}
+					}
+					openList.push_back(neighbour);
+				}
+			}
+			else {
+				if (current->gValue + arc.weight() < neighbour->gValue) {
+					neighbour->gValue = current->gValue + arc.weight();
+					neighbour->hValue = neighbour->Diagonal(goal);
+					neighbour->setPrevious(current);
+					for (int i = 0; i < openList.size(); i++)
+					{
+						if (openList[i] == neighbour) {
+							auto it = openList.begin();
+							advance(it, i);
+							openList.erase(it);
+						}
+					}
+					openList.push_back(neighbour);
+
+				}
+
+			}
+		}
+	}
+}
+
+// ----------------------------------------------------------------
+//  Name:           UpdateVertex
+//  Description:    Updates the cost between two nodes
+//  Arguments:      The first parameter is the current node.
+//                  The second parameter is the neighbour node.
+//  Return Value:   None.
+// ----------------------------------------------------------------
+template<class NodeType, class ArcType>
+void Graph<NodeType, ArcType>::UpdateVertex(Node* current, Node *neighbour, vector<Node*> open) {
+	if (LineOfSight(current->previous(), neighbour)) {
+		if (current->previous()->gValue + current->previous()->Euclidean(neighbour) < neighbour->gValue) {
+			neighbour->gValue = current->previous()->gValue + current->previous()->Euclidean(neighbour);
+			neighbour->setPrevious(current->previous());
+			for (int i = 0; i < open.size(); i++)
+			{
+				if (open[i] == neighbour) {
+					auto it = open.begin();
+					advance(it, i);
+					open.erase(it);
+				}
+			}
+			open.push_back(neighbour);
+		}
+	}
+	else {
+		if (current->gValue + current->Euclidean(neighbour) < neighbour->gValue) {
+			neighbour->gValue = current->gValue + current->Euclidean(neighbour);
+			neighbour->setPrevious(current);
+			for (int i = 0; i < open.size(); i++)
+			{
+				if (open[i] == neighbour) {
+					auto it = open.begin();
+					advance(it, i);
+					open.erase(it);
+				}
+			}
+			open.push_back(neighbour);
+		}
+
+	}
+
+
+}
+
+// ----------------------------------------------------------------
+//  Name:           LineOfSight
+//  Description:    Does a line-of-sight check between two nodes
+//  Arguments:      The first parameter is the current node.
+//                  The second parameter is the neighbour node.
+//  Return Value:   None.
+// ----------------------------------------------------------------
+template<class NodeType, class ArcType>
+bool Graph<NodeType, ArcType>::LineOfSight(Node* currnet, Node *neighbour) {
+
+
+
 }
 
 #include "GraphNode.h"

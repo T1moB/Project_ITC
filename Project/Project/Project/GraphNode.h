@@ -140,7 +140,8 @@ public:
     Arc* getArc( Node* pNode );    
     void addArc( Node* pNode, ArcType pWeight );
     void removeArc( Node* pNode );
-	float Heuristic(Node* goal);
+	float Diagonal(Node* goal);
+	float Euclidean(Node* goal);
 
 
 };
@@ -215,18 +216,32 @@ void GraphNode<NodeType, ArcType>::removeArc( Node* node ) {
 }
 
 // ----------------------------------------------------------------
-//  Name:           Heurisitic
-//  Description:    Does the heuristic calculation
-//  Arguments:      None.
-//  Return Value:   None.
+//  Name:           Diagonal
+//  Description:    Does the Diagonal heuristic calculation
+//  Arguments:      To which node it needs to check.
+//  Return Value:   returns the heuristic value.
 // ----------------------------------------------------------------
 template<typename NodeType, typename ArcType>
-float GraphNode<NodeType, ArcType>::Heuristic(Node* goal) {
+float GraphNode<NodeType, ArcType>::Diagonal (Node* goal) {
 	float D = 1;
-	float D2 = std::sqrt(2);
+	float D2 = 1.414;
 	float dx = std::abs(xPos - goal->GetXPos());
 	float dy = std::abs(yPos - goal->GetYPos());
 	return  D * (dx + dy) + (D2 - 2 * D) * std::min(dx, dy);
+}
+
+// ----------------------------------------------------------------
+//  Name:           Euclidean
+//  Description:    Does the Euclidean heuristic calculation
+//  Arguments:      To which node it needs to check.
+//  Return Value:   returns the heuristic value.
+// ----------------------------------------------------------------
+template<typename NodeType, typename ArcType>
+float GraphNode<NodeType, ArcType>::Euclidean(Node* goal) {
+	float D = 1;
+	float dx = std::abs(xPos - goal->GetXPos());
+	float dy = std::abs(yPos - goal->GetYPos());
+	return D * sqrt(dx * dx + dy * dy);
 }
 
 #include "GraphArc.h"

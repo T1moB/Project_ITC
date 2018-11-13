@@ -4,6 +4,7 @@
 #include "NodeCreator.h"
 #include "MainGraph.h"
 #include <Windows.h>
+#include <thread>
 
 using namespace sf;
 
@@ -11,7 +12,7 @@ bool isPressed = false;
 int range = 1;
 
 Game::Game() : 
-	m_window(VideoMode(800, 800), "SFML works!"/*, sf::Style::Fullscreen*/),
+	m_window(VideoMode(1080, 720), "Pathfinding"/*, sf::Style::Fullscreen*/),
 	grid(m_window)
 {
 
@@ -62,7 +63,7 @@ void Game::Update() {
 void Game::Draw() {
 
 	m_window.clear();
-	grid.DrawFromGraph(&mg.m_graph, range);
+	grid.DrawFromGraph(&mg.m_graph);
 	//grid.Draw();
 	m_window.display();
 }

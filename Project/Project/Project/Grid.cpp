@@ -28,10 +28,7 @@ void Grid::CreateGrid() {
 		for (int j = 0; j < gridSize; j++)
 		{
 			int index = i * gridSize + j;
-			//RectangleShape square(Vector2f(sizeX,sizeY));
 			grid[index] = Vector2f(j * sizeX, i * sizeY);
-			//square.move(Vector2f(j + 0.5*sizeX, i + 0.5*sizeY));
-			//square.setFillColor(Color(128, 128, 128));
 			obstacles[index] = false;
 			int r = (int)std::rand() % 10;
 			if(r == 0)
@@ -78,10 +75,7 @@ void Grid::Draw() {
 	}
 }
 
-void Grid::DrawFromGraph(Graph<std::string, int>* g, int range) {
-	//RectangleShape background(Vector2f(m_window.getSize().x, m_window.getSize().y));
-	//background.setFillColor(Color(10, 175, 10));
-	//m_window.draw(background);
+void Grid::DrawFromGraph(Graph<std::string, int>* g) {
 	Font font;
 	if (!font.loadFromFile("Data/OpenSans.ttf")) {
 		cout << "couldn't load file" << endl;
@@ -90,15 +84,9 @@ void Grid::DrawFromGraph(Graph<std::string, int>* g, int range) {
 	{
 		for (int j = 0; j < gridSize; j++)
 		{
-			//for (int i = 0; i < range; i++)
-			//{
-
 			int index = i * gridSize + j;
 			RectangleShape square(Vector2f(sizeX, sizeY));
 			square.setPosition(g->nodeIndex(index)->GetXPos(), g->nodeIndex(index)->GetYPos());
-			//cout << "Position: " << g->nodeIndex(index)->GetXPos() << " , " << g->nodeIndex(index)->GetXPos() << endl;
-			//cout << "Drawing square at: " << square.getPosition().x << " , " << square.getPosition().y << endl;
-			//square.setSize(Vector2f(sizeX, sizeY));
 			square.setFillColor(Color(10, 175, 10));
 			if (g->nodeIndex(index)->IsObtacle()) {
 				square.setFillColor(Color(128, 128, 128));
@@ -109,7 +97,6 @@ void Grid::DrawFromGraph(Graph<std::string, int>* g, int range) {
 			m_window.draw(square);
 		}
 	}
-	//}
 }
 
 Grid::~Grid()
