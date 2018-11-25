@@ -3,7 +3,6 @@
 #include "Graph.h"
 class Grid
 {
-
 	typedef GraphArc<std::string, int> Arc;
 	typedef GraphNode<std::string, int> Node;
 

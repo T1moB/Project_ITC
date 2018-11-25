@@ -1,5 +1,4 @@
 #include "Game.h"
-#include <SFML/Graphics.hpp>
 #include "Grid.h"
 #include "NodeCreator.h"
 #include "MainGraph.h"
@@ -9,11 +8,10 @@
 using namespace sf;
 
 bool isPressed = false;
-int range = 1;
+bool mouseIsPressed = false;
 
-Game::Game() : 
-	m_window(VideoMode(1080, 720), "Pathfinding"/*, sf::Style::Fullscreen*/),
-	grid(m_window)
+Game::Game() : m_window(VideoMode(1080, 720), "Pathfinding"/*, sf::Style::Fullscreen*/),
+grid(m_window)
 {
 
 }
@@ -27,6 +25,7 @@ void Game::Init() {
 	mg.CreateGraph();
 	grid.CreateGridFromGraph(&mg.m_graph);
 	//mg.AStar();
+
 }
 
 void Game::Update() {
@@ -37,15 +36,42 @@ void Game::Update() {
 		if (event.type == sf::Event::Closed)
 			m_window.close();
 	}
+	if (Mouse::isButtonPressed(Mouse::Left)) {
+		if (!mouseIsPressed) {
+			cout << Mouse::getPosition().x << " , " << Mouse::getPosition().y << endl;
+			mg.SetStartGoal(Mouse::getPosition(m_window));
+			mouseIsPressed = true;
+		}
+	}
+	else if (Mouse::isButtonPressed(Mouse::Right)) {
+		if (!mouseIsPressed) {
+			cout << Mouse::getPosition().x << " , " << Mouse::getPosition().y << endl;
+			mg.SetAObstacle(Mouse::getPosition(m_window));
+			mouseIsPressed = true;
+		}
+	}
+	else {
+		mouseIsPressed = false;
+	}
 	if (GetKeyState('X') & 0x8000) {
 		if (!isPressed) {
 			mg.AStar();
 			isPressed = true;
 		}
 	}
+	else if (GetKeyState('Z') & 0x8000) {
+		if (!isPressed) {
+			Vector2u windowSize = m_window.getSize();
+			Texture texture;
+			texture.create(windowSize.x, windowSize.y);
+			texture.update(m_window);
+			Image image = texture.copyToImage();
+			mg.ThetaStar(image);
+			isPressed = true;
+		}
+	}
 	else if (GetKeyState(VK_RIGHT) & 0x8000) {
 		if (!isPressed) {
-			range++;
 			isPressed = true;
 		}
 	}
@@ -64,6 +90,7 @@ void Game::Draw() {
 
 	m_window.clear();
 	grid.DrawFromGraph(&mg.m_graph);
+	mg.Draw(m_window);
 	//grid.Draw();
 	m_window.display();
 }

@@ -1,13 +1,11 @@
 #include "Grid.h"
-#include <SFML/Graphics.hpp>
 #include <sstream>
 #include <random>
-#include "Game.h"
 #include <ctime>  
+#include <list>  
 
 using namespace sf;
 
-Game* _game;
 int sizeX, sizeY, gridSize;
 Grid::Grid(sf::RenderWindow & window) : m_window(window)
 {
@@ -37,6 +35,7 @@ void Grid::CreateGrid() {
 	}
 }
 
+
 void Grid::CreateGridFromGraph(Graph<std::string, int>* g ) {
 	for (int i = 0; i < gridSize; i++)
 	{
@@ -44,16 +43,26 @@ void Grid::CreateGridFromGraph(Graph<std::string, int>* g ) {
 		{
 			int index = i * gridSize + j;
 			grid[index] = Vector2f(j * sizeX, i * sizeY);
-			g->nodeIndex(index)->SetPosition(j * sizeX, i * sizeY);
+			g->nodeIndex(index)->SetPosition(j * sizeX + 0.5*sizeX, i * sizeY + 0.5*sizeY);
 			obstacles[index] = false;
 			int r = rand() % 5;
 			if (r == 0 && index != 11 & index != 88) {
 				obstacles[index] = true;
 				g->nodeIndex(index)->SetAsObstacle();
+				/*list<Arc> arcs = g->nodeIndex(index)->arcList();
+				typedef list<Arc> arclist;
+				auto it = arcs.begin();
+				for (; it != arcs.end(); ++it)
+				{
+					Arc arc = *it;
+					Node* neighbour = arc.node();
+					neighbour->removeArc(g->nodeIndex(index));
+				}*/
 			}
 		}
 	}
-
+	g->SetStart(g->nodeIndex(11));
+	g->SetGoal(g->nodeIndex(88));
 }
 
 void Grid::Draw() {
@@ -86,17 +95,41 @@ void Grid::DrawFromGraph(Graph<std::string, int>* g) {
 		{
 			int index = i * gridSize + j;
 			RectangleShape square(Vector2f(sizeX, sizeY));
-			square.setPosition(g->nodeIndex(index)->GetXPos(), g->nodeIndex(index)->GetYPos());
+			square.setPosition(g->nodeIndex(index)->GetXPos() - +0.5*sizeX, g->nodeIndex(index)->GetYPos() - +0.5*sizeY);
 			square.setFillColor(Color(10, 175, 10));
 			if (g->nodeIndex(index)->IsObtacle()) {
 				square.setFillColor(Color(128, 128, 128));
 			}
-			else if (g->nodeIndex(index)->IsPath()) {
-				square.setFillColor(Color(0, 0, 255));
-			}
+			g->nodeIndex(index)->sizeX = sizeX;
+			g->nodeIndex(index)->sizeY = sizeY;
 			m_window.draw(square);
+			CircleShape c(10);
+			c.setFillColor(Color::Magenta);
+			c.setPosition(g->GetStart()->GetXPos() - 5, g->GetStart()->GetYPos() - 5);
+			m_window.draw(c);
+			c.setFillColor(Color::Yellow);
+			c.setPosition(g->GetGoal()->GetXPos() - 5, g->GetGoal()->GetYPos() - 5);
+			m_window.draw(c);
+			if (g->nodeIndex(index)->IsPath()) {
+				//square.setFillColor(Color(10, 10, 255));
+				for (Node* node = g->nodeIndex(index); node != NULL; node = node->previous()) {
+					CircleShape circle(10);
+					circle.setFillColor(Color::Blue);
+					circle.setPosition(node->GetXPos() - 5, node->GetYPos() - 5);
+					m_window.draw(circle);
+					if (node->previous()) {
+						sf::VertexArray line(sf::LinesStrip, 2);
+						line[0].position = sf::Vector2f(node->GetXPos(), node->GetYPos());
+						line[0].color = sf::Color::Blue;
+						line[1].position = sf::Vector2f(node->previous()->GetXPos(), node->previous()->GetYPos());
+						line[1].color = sf::Color::Blue;
+						m_window.draw(line);
+					}
+				}
+			}
 		}
 	}
+
 }
 
 Grid::~Grid()

@@ -103,6 +103,10 @@ public:
 		obstacle = true;
 	}
 
+	void SetObstacle(bool o) {
+		obstacle = o;
+	}
+
 	bool IsObtacle() {
 		return obstacle;
 	}
@@ -126,6 +130,9 @@ public:
 	int GetYPos() {
 		return yPos;
 	}
+
+	float sizeX;
+	float sizeY;
 
 	// -------------------------------------------------------
 	// Description: the g value
@@ -241,7 +248,7 @@ float GraphNode<NodeType, ArcType>::Euclidean(Node* goal) {
 	float D = 1;
 	float dx = std::abs(xPos - goal->GetXPos());
 	float dy = std::abs(yPos - goal->GetYPos());
-	return D * sqrt(dx * dx + dy * dy);
+	return D * sqrt(powf(dx,2) + powf(dy, 2));
 }
 
 #include "GraphArc.h"

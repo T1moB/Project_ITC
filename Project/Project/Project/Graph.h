@@ -8,8 +8,12 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <SFML/Graphics.hpp>
+#include <cmath>
+#include <Windows.h>
 
 using namespace std;
+using namespace sf;
 
 template <class NodeType, class ArcType> class GraphArc;
 template <class NodeType, class ArcType> class GraphNode;
@@ -32,6 +36,9 @@ private:
 // ----------------------------------------------------------------
 
 	std::vector<Node *> m_nodes;
+	Node* start = m_nodes[11];
+	Node* goal = m_nodes[88];
+	bool foundGoal;
 
 
 public:           
@@ -39,12 +46,19 @@ public:
     Graph( int size );
     ~Graph();
 
+	vector<Vector2f> hitPoints;
+	vector<Vector2f> hitNodes;
     // Accessors
     Node * nodeIndex(int index) const {
 		return m_nodes.at(index);
     }
-
+	
     // Public member functions.
+	void SetStart(Node* s) { start = s; }
+	void SetGoal(Node* g) { goal = g; }
+	Node* GetStart() { return start; }
+	Node* GetGoal() { return goal; }
+	Node* GetNodeFromPos(Vector2i pos);
     bool addNode( NodeType data, int index );
     void removeNode( int index );
     bool addArc( int from, int to, ArcType weight );
@@ -54,11 +68,12 @@ public:
     void depthFirst( Node* pNode, std::function<void(Node *)> f_visit);
     void breadthFirst( Node* pNode, std::function<void(Node *)> f_visit);
 	void adaptedBreadthFirst( Node* pCurrent, Node* pGoal );	
-	void AStar( Node* pCurrent, Node* pGoal );	
+	void AStar();	
 	Node* GetCheapestNode(vector<Node*> openList);
-	void ThetaStar(Node* pCurrent, Node* pGoal);
+	void ThetaStar(sf::Image image);
 	void UpdateVertex(Node* pCurrent, Node* pNeighbour, vector<Node*> open);
-	bool LineOfSight(Node* pCurrent, Node* pNeighbour);
+	bool LineOfSight(Node* pCurrent, Node* pNeighbour, sf::Image image);
+	void ShowInfo(string info);
 };
 
 // ----------------------------------------------------------------
@@ -317,6 +332,49 @@ void Graph<NodeType, ArcType>::adaptedBreadthFirst( Node* current, Node *goal ) 
      
 }
 
+template<class NodeType, class ArcType>
+GraphNode<NodeType, ArcType>* Graph<NodeType, ArcType>::GetNodeFromPos(Vector2i pos) {
+	for (size_t i = 0; i < m_nodes.size(); i++)
+	{
+		if (pos.x > m_nodes.at(i)->GetXPos() - m_nodes.at(i)->sizeX / 2 && pos.x < m_nodes.at(i)->GetXPos() + m_nodes.at(i)->sizeX / 2 &&
+			pos.y > m_nodes.at(i)->GetYPos() - m_nodes.at(i)->sizeY / 2 && pos.y < m_nodes.at(i)->GetYPos() + m_nodes.at(i)->sizeY / 2)
+			return m_nodes.at(i);
+	}
+	return NULL;
+}
+
+template<class NodeType, class ArcType>
+void Graph<NodeType, ArcType>::ShowInfo(string info) {
+	int a = 0;
+	while (!foundGoal) {
+		switch (a)
+		{
+		case 0:
+			cout << "Working " << info << endl;
+			a++;
+			break;
+		case 1:
+			cout << "Working " << info << "." << endl;
+			a++;
+			break;
+		case 2:
+			cout << "Working " << info << ".." << endl;
+			a++;
+			break;
+		case 3:
+			cout << "Working " << info << "..." << endl;
+			a++;
+			break;
+		case 4:
+			cout << "Working " << info << "...." << endl;
+			a = 0;
+			break;
+		default:
+			break;
+		}
+		this_thread::sleep_for(chrono::seconds(2));
+	}
+}
 
 // ----------------------------------------------------------------
 //  Name:           AStar
@@ -327,7 +385,11 @@ void Graph<NodeType, ArcType>::adaptedBreadthFirst( Node* current, Node *goal ) 
 //  Return Value:   None.
 // ----------------------------------------------------------------
 template<class NodeType, class ArcType>
-void Graph<NodeType, ArcType>::AStar(Node* start, Node *goal) {
+void Graph<NodeType, ArcType>::AStar() {
+	hitPoints.clear();
+	hitNodes.clear();
+	foundGoal = false;
+	thread* t1 = new thread(&Graph<NodeType, ArcType>::ShowInfo, this, "A Star");
 	vector<Node*> closedList;
 	vector<Node*> openList = { start };
 	vector<Node*> cameFrom;
@@ -335,14 +397,32 @@ void Graph<NodeType, ArcType>::AStar(Node* start, Node *goal) {
 	start->gValue = 0;
 	start->hValue = start->Diagonal(goal);
 	while (!openList.empty()) {
-		Node* current = GetCheapestNode(openList);
-		//Node* current = openList.back();
-		//openList.pop_back();
+		Node* cheapest;
+
+		float bestF = 9999;
+		float index = -1;
+
+		for (int i = 0; i < openList.size(); i++)
+		{
+			if (openList[i]->GetFValue() < bestF)//Finding the cheapest cell in this list
+			{
+				bestF = openList[i]->GetFValue();
+				index = i;
+			}
+		}
+
+		cheapest = openList[index];
+		auto ite = openList.begin();
+		advance(ite, index);
+		openList.erase(ite);
+		Node* current = cheapest;// GetCheapestNode(openList);
 		closedList.push_back(current);
 
-		cout << "Checking current: " << current->data() << endl;
+		//cout << "Checking current: " << current->data() << endl;
 		if (current == goal) {
 			cout << "Found Goal" << endl;
+			foundGoal = true;
+			goal->SetPath();
 			break;
 		}
 		typedef list<Arc> arclist;
@@ -352,7 +432,7 @@ void Graph<NodeType, ArcType>::AStar(Node* start, Node *goal) {
 		{
 			Arc arc = *it;
 			Node* neighbour = arc.node();
-			cout << "Checking neighbour: " << neighbour->data() << endl;
+			//cout << "Checking neighbour: " << neighbour->data() << endl;
 			if (neighbour->IsObtacle()) { continue; }
 			for (int j = 0; j < closedList.size(); j++)
 			{
@@ -370,13 +450,15 @@ void Graph<NodeType, ArcType>::AStar(Node* start, Node *goal) {
 			}
 			if (!inOpen) {
 				neighbour->gValue = 99999;
-				neighbour->setPrevious(NULL);
+				//neighbour->setPrevious(NULL);
 			}
 			float oldGValue = neighbour->gValue;
 			if (current->gValue + arc.weight() < neighbour->gValue) {
 				neighbour->gValue = current->gValue + arc.weight();
 				neighbour->hValue = neighbour->Diagonal(goal);
-				neighbour->setPrevious(current);
+				if (neighbour != current->previous()) {
+					neighbour->setPrevious(current);
+				}
 				if ( neighbour->gValue < oldGValue) {
 					for (int i = 0; i < openList.size(); i++)
 					{
@@ -391,11 +473,12 @@ void Graph<NodeType, ArcType>::AStar(Node* start, Node *goal) {
 			}
 		}
 	}
-	for (Node* node = goal; node != NULL; node = node->previous()) {
+	t1->join();
+	/*for (Node* node = goal; node != NULL; node = node->previous()) {
 		cout << node->data() << endl;
-		node->SetPath();
+		//node->SetPath();
 		cameFrom.push_back(node);
-	}
+	}*/
 }
 
 
@@ -438,19 +521,45 @@ GraphNode<NodeType, ArcType>* Graph<NodeType, ArcType>::GetCheapestNode(vector<N
 //  Return Value:   None.
 // ----------------------------------------------------------------
 template<class NodeType, class ArcType>
-void Graph<NodeType, ArcType>::ThetaStar(Node* start, Node *goal) {
+void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
+	hitPoints.clear();
+	hitNodes.clear();
+	foundGoal = false;
+
+	thread* t1 = new thread(&Graph<NodeType, ArcType>::ShowInfo, this, "Theta Star");
 	vector<Node*> closedList;
 	vector<Node*> openList = { start };
 	vector<Node*> cameFrom;
 
 	start->gValue = 0;
 	start->hValue = start->Euclidean(goal);
+	//start->setPrevious(start);
 	while (!openList.empty()) {
-		Node* current = GetCheapestNode(openList);
+		Node* cheapest;
+
+		float bestF = 9999;
+		float index = -1;
+
+		for (int i = 0; i < openList.size(); i++)
+		{
+			if (openList[i]->GetFValue() < bestF)//Finding the cheapest cell in this list
+			{
+				bestF = openList[i]->GetFValue();
+				index = i;
+			}
+		}
+
+		cheapest = openList[index];
+		auto ite = openList.begin();
+		advance(ite, index);
+		openList.erase(ite);
+		Node* current = cheapest;//GetCheapestNode(openList);
 		closedList.push_back(current);
-		cout << "Checking currnet: " << current->data() << endl;
+		//cout << "Checking current: " << current->data() << endl;
 		if (current == goal) {
 			cout << "Found Goal" << endl;
+			foundGoal = true;
+			goal->SetPath();
 			break;
 		}
 		typedef list<Arc> arclist;
@@ -460,47 +569,56 @@ void Graph<NodeType, ArcType>::ThetaStar(Node* start, Node *goal) {
 		{
 			Arc arc = *it;
 			Node* neighbour = arc.node();
-			cout << "Checking neighbour: " << neighbour->data() << endl;
+			//cout << "Checking neighbour: " << neighbour->data() << endl;
 			if (neighbour->IsObtacle()) { continue; }
 			for (int j = 0; j < closedList.size(); j++)
 			{
-				if (neighbour == closedList[j]) { continue; }
+				if (neighbour == closedList[j]) { break; }
 			}
 			float gScore = current->gValue + arc.weight();
 
-			bool checkGValue = true, addToList = false;
+			bool inOpen = false;
 			for (int j = 0; j < openList.size(); j++)
 			{
 				if (openList[j] == neighbour)
 				{
-					checkGValue = false;
-					break;
+					inOpen = true;
 				}
 			}
-			if (checkGValue) {
-				neighbour->gValue = 9999;
-				neighbour->setPrevious(NULL);
+			if (!inOpen) {
+				neighbour->gValue = 99999;
+				//neighbour->setPrevious(NULL);
 			}
-			if (LineOfSight(current->previous(), neighbour)) {
+			float oldGValue = neighbour->gValue;
+			if (LineOfSight(current->previous(), neighbour, image)) {
 				if (current->previous()->gValue + current->previous()->Euclidean(neighbour) < neighbour->gValue) {
 					neighbour->gValue = current->previous()->gValue + current->previous()->Euclidean(neighbour);
-					neighbour->setPrevious(current->previous());
-					for (int i = 0; i < openList.size(); i++)
-					{
-						if (openList[i] == neighbour) {
-							auto it = openList.begin();
-							advance(it, i);
-							openList.erase(it);
-						}
+					neighbour->hValue = neighbour->Euclidean(goal);
+					if (neighbour != current->previous()->previous()) {
+						neighbour->setPrevious(current->previous());
 					}
-					openList.push_back(neighbour);
+					//if (neighbour->gValue < oldGValue) {
+						for (int i = 0; i < openList.size(); i++)
+						{
+							if (openList[i] == neighbour) {
+								auto it = openList.begin();
+								advance(it, i);
+								openList.erase(it);
+							}
+						}
+						openList.push_back(neighbour);
+					//}
 				}
 			}
 			else {
 				if (current->gValue + arc.weight() < neighbour->gValue) {
 					neighbour->gValue = current->gValue + arc.weight();
-					neighbour->hValue = neighbour->Diagonal(goal);
-					neighbour->setPrevious(current);
+					neighbour->hValue = neighbour->Euclidean(goal);
+					if (neighbour != current->previous()) {
+						neighbour->setPrevious(current);
+					}
+
+					//if (neighbour->gValue < oldGValue) {
 					for (int i = 0; i < openList.size(); i++)
 					{
 						if (openList[i] == neighbour) {
@@ -510,13 +628,21 @@ void Graph<NodeType, ArcType>::ThetaStar(Node* start, Node *goal) {
 						}
 					}
 					openList.push_back(neighbour);
-
+					//}
 				}
 
 			}
 		}
 	}
+	t1->join();
+	/*for (Node* node = goal; node != NULL; node = node->previous()) {
+		cout << node->data() << endl;
+		if (node == start) break;
+		//node->SetPath();
+		cameFrom.push_back(node);
+	}*/
 }
+
 
 // ----------------------------------------------------------------
 //  Name:           UpdateVertex
@@ -527,7 +653,7 @@ void Graph<NodeType, ArcType>::ThetaStar(Node* start, Node *goal) {
 // ----------------------------------------------------------------
 template<class NodeType, class ArcType>
 void Graph<NodeType, ArcType>::UpdateVertex(Node* current, Node *neighbour, vector<Node*> open) {
-	if (LineOfSight(current->previous(), neighbour)) {
+	if (LineOfSight(current->previous(), neighbour, NULL)) {
 		if (current->previous()->gValue + current->previous()->Euclidean(neighbour) < neighbour->gValue) {
 			neighbour->gValue = current->previous()->gValue + current->previous()->Euclidean(neighbour);
 			neighbour->setPrevious(current->previous());
@@ -561,7 +687,6 @@ void Graph<NodeType, ArcType>::UpdateVertex(Node* current, Node *neighbour, vect
 
 
 }
-
 // ----------------------------------------------------------------
 //  Name:           LineOfSight
 //  Description:    Does a line-of-sight check between two nodes
@@ -570,9 +695,30 @@ void Graph<NodeType, ArcType>::UpdateVertex(Node* current, Node *neighbour, vect
 //  Return Value:   None.
 // ----------------------------------------------------------------
 template<class NodeType, class ArcType>
-bool Graph<NodeType, ArcType>::LineOfSight(Node* currnet, Node *neighbour) {
-
-
+bool Graph<NodeType, ArcType>::LineOfSight(Node* current, Node *neighbour, sf::Image image) {
+	if (!current || current == neighbour) { return false; }
+	Vector2f line(neighbour->GetXPos() - current->GetXPos(),  neighbour->GetYPos() - current->GetYPos());
+	//normalize the vector
+	float length = sqrtf(powf(line.x, 2) + powf(line.y, 2));
+	line.x  = line.x / length;
+	line.y  = line.y / length;
+	//set the lengt of the vector to 40(half the length of one tile)
+	float templength = 40;
+	Vector2f tempLine(line.x * templength, line.y * templength);
+	while (templength < length) {
+		tempLine.x = line.x * templength; tempLine.y = line.y * templength;
+		Color pixel = image.getPixel(current->GetXPos() + tempLine.x, current->GetYPos() + tempLine.y);
+		if (pixel == Color(128, 128, 128)) { 
+			hitPoints.push_back(Vector2f(current->GetXPos() + tempLine.x, current->GetYPos() + tempLine.y));
+			hitNodes.push_back(Vector2f(current->GetXPos(), current->GetYPos()));
+			return false; 
+		}
+		templength += 40;
+	}
+	//hitPoints.push_back(Vector2f(current->GetXPos() + tempLine.x, current->GetYPos() + tempLine.y));
+	//hitNodes.push_back(Vector2f(current->GetXPos(), current->GetYPos()));
+	//Color pixel = image.getPixel(current->GetXPos() + line.x, current->GetYPos() + line.y);
+	return true;
 
 }
 

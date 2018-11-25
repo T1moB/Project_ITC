@@ -6,7 +6,12 @@
 class Game
 {
 public:
-	Game();
+	static Game& GetInstance() {
+		//if (!instance)
+		//	instance = Game;
+		static Game instance;
+		return instance;
+	}
 	void Init();
 	void Update();
 	void Draw();
@@ -14,11 +19,10 @@ public:
 	sf::RenderWindow m_window;
 	Grid grid;
 	MainGraph mg;
-	/*Game(const Game&) = delete;
+	Game(const Game&) = delete;
 	Game& operator=(const Game&) = delete;
-	~Game();*/
+	//~Game();
 private:
-	
-	//sf::RenderWindow window;
+	Game();
 };
 
