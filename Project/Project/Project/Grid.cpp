@@ -2,19 +2,18 @@
 #include <sstream>
 #include <random>
 #include <ctime>  
+#include <cmath>  
 #include <list>  
 
 using namespace sf;
 
-int sizeX, sizeY, gridSize;
-Grid::Grid(sf::RenderWindow & window) : m_window(window)
+Grid::Grid(sf::RenderWindow & window, int size) : m_window(window), gridSize(size)
 {
 	srand(time(0));
-	sizeX = window.getSize().x/10;	
+	sizeX = window.getSize().x/gridSize;	
 	//sizeX = 80;	
-	sizeY = window.getSize().y/10;
+	sizeY = window.getSize().y/gridSize;
 	//sizeY = 80;
-	gridSize = 10;
 	grid = new Vector2f[gridSize*gridSize];
 	obstacles = new bool[gridSize*gridSize];
 }
@@ -86,6 +85,7 @@ void Grid::Draw() {
 
 void Grid::DrawFromGraph(Graph<std::string, int>* g) {
 	Font font;
+	int pathIndex = 0;
 	if (!font.loadFromFile("Data/OpenSans.ttf")) {
 		cout << "couldn't load file" << endl;
 	}
@@ -103,32 +103,34 @@ void Grid::DrawFromGraph(Graph<std::string, int>* g) {
 			g->nodeIndex(index)->sizeX = sizeX;
 			g->nodeIndex(index)->sizeY = sizeY;
 			m_window.draw(square);
-			CircleShape c(10);
-			c.setFillColor(Color::Magenta);
-			c.setPosition(g->GetStart()->GetXPos() - 5, g->GetStart()->GetYPos() - 5);
-			m_window.draw(c);
-			c.setFillColor(Color::Yellow);
-			c.setPosition(g->GetGoal()->GetXPos() - 5, g->GetGoal()->GetYPos() - 5);
-			m_window.draw(c);
 			if (g->nodeIndex(index)->IsPath()) {
-				//square.setFillColor(Color(10, 10, 255));
-				for (Node* node = g->nodeIndex(index); node != NULL; node = node->previous()) {
-					CircleShape circle(10);
-					circle.setFillColor(Color::Blue);
-					circle.setPosition(node->GetXPos() - 5, node->GetYPos() - 5);
-					m_window.draw(circle);
-					if (node->previous()) {
-						sf::VertexArray line(sf::LinesStrip, 2);
-						line[0].position = sf::Vector2f(node->GetXPos(), node->GetYPos());
-						line[0].color = sf::Color::Blue;
-						line[1].position = sf::Vector2f(node->previous()->GetXPos(), node->previous()->GetYPos());
-						line[1].color = sf::Color::Blue;
-						m_window.draw(line);
-					}
-				}
+				pathIndex = index;
 			}
 		}
 	}
+	if (g->foundGoal) {
+		for (Node* node = g->nodeIndex(pathIndex); node != NULL; node = node->previous()) {
+			CircleShape circle(7.5);
+			circle.setFillColor(Color::Blue);
+			circle.setPosition(node->GetXPos() - 4, node->GetYPos() - 4);
+			m_window.draw(circle);
+			if (node->previous()) {
+				sf::VertexArray line(sf::LinesStrip, 2);
+				line[0].position = sf::Vector2f(node->GetXPos(), node->GetYPos());
+				line[0].color = sf::Color::Blue;
+				line[1].position = sf::Vector2f(node->previous()->GetXPos(), node->previous()->GetYPos());
+				line[1].color = sf::Color::Blue;
+				m_window.draw(line);
+			}
+		}
+	}
+	CircleShape c(7.5);
+	c.setFillColor(Color::Magenta);
+	c.setPosition(g->GetStart()->GetXPos() - 4, g->GetStart()->GetYPos() - 4);
+	m_window.draw(c);
+	c.setFillColor(Color::Yellow);
+	c.setPosition(g->GetGoal()->GetXPos() - 4, g->GetGoal()->GetYPos() - 4);
+	m_window.draw(c);
 
 }
 

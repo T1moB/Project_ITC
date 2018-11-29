@@ -7,7 +7,7 @@ class Grid
 	typedef GraphNode<std::string, int> Node;
 
 public:
-	Grid(sf::RenderWindow & window);
+	Grid(sf::RenderWindow & window, int size);
 	~Grid();
 	void CreateGrid();
 	void CreateGridFromGraph(Graph<std::string, int> *g);
@@ -17,5 +17,7 @@ public:
 	bool *obstacles;
 private:
 	sf::RenderWindow & m_window;
+	int sizeX, sizeY;
+	int gridSize;
 };
 

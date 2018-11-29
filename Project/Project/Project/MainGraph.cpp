@@ -9,12 +9,12 @@
 
 using namespace std;
 
-bool start = false, goal = false;
+bool start = false;
 void visit(GraphNode<std::string, int> * node) {
 	cout << "Visiting: " << node->data() << endl;
 }
 
-MainGraph::MainGraph() : m_graph(100)
+MainGraph::MainGraph(int size) : m_graph(size*size)
 {
 }
 
@@ -29,33 +29,30 @@ void MainGraph::CreateGraph() {
 	std::string nodeLabel;
 	int i = 0;
 	ifstream myfile;
-	myfile.open("Data/nodes.txt");
+	myfile.open("Data/nodes2.txt");
 
 	while (myfile >> nodeLabel) {
 		m_graph.addNode(nodeLabel, i++);
 	}
 
 	myfile.close();
-	myfile.open("Data/arcs.txt");
+	myfile.open("Data/arcs2.txt");
 	int from = 0, to= 0;
 	float weight;
-	while (from != 99 && to != 98) {
+	while (from != 399  && to != 398) {
 		myfile >> from >> to >> weight;
 		m_graph.addArc(from, to, weight);
 	}
 	myfile.close();
-
-	//std::function<void(GraphNode<std::string,int> *)> f_visit = &visit;
-	//m_graph.AStar(m_graph.nodeIndex(5), m_graph.nodeIndex(55));
-	//graph.breadthFirst(graph.nodeIndex(0), f_visit);
 }
 
 void MainGraph::SetStartGoal(Vector2i pos) {
 	Node* n = m_graph.GetNodeFromPos(pos);
 	if (!n || n->IsObtacle()) {
-		cout << "No node found" << endl;
+		cout << "No node found or is an obstacle" << endl;
 		return;
 	}
+	m_graph.Reset();
 	if (!start) {
 		cout << "Setting Start to: " << n->data() << endl;
 		m_graph.SetStart(n);

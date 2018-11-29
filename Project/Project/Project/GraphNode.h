@@ -111,8 +111,8 @@ public:
 		return obstacle;
 	}
 
-	void SetPath() {
-		path = true;
+	void SetPath(bool p) {
+		path = p;
 	}
 
 	bool IsPath() {
@@ -232,9 +232,9 @@ template<typename NodeType, typename ArcType>
 float GraphNode<NodeType, ArcType>::Diagonal (Node* goal) {
 	float D = 1;
 	float D2 = 1.414;
-	float dx = std::abs(xPos - goal->GetXPos());
-	float dy = std::abs(yPos - goal->GetYPos());
-	return  D * (dx + dy) + (D2 - 2 * D) * std::min(dx, dy);
+	float dx = abs(xPos - goal->GetXPos());
+	float dy = abs(yPos - goal->GetYPos());
+	return  D * (dx + dy) + (D2 - 2 * D) * min(dx, dy);
 }
 
 // ----------------------------------------------------------------
@@ -246,8 +246,8 @@ float GraphNode<NodeType, ArcType>::Diagonal (Node* goal) {
 template<typename NodeType, typename ArcType>
 float GraphNode<NodeType, ArcType>::Euclidean(Node* goal) {
 	float D = 1;
-	float dx = std::abs(xPos - goal->GetXPos());
-	float dy = std::abs(yPos - goal->GetYPos());
+	float dx = abs(xPos - goal->GetXPos());
+	float dy = abs(yPos - goal->GetYPos());
 	return D * sqrt(powf(dx,2) + powf(dy, 2));
 }
 

@@ -11,21 +11,18 @@ bool isPressed = false;
 bool mouseIsPressed = false;
 
 Game::Game() : m_window(VideoMode(1080, 720), "Pathfinding"/*, sf::Style::Fullscreen*/),
-grid(m_window)
+grid(m_window, GRAPHSIZE), mg(GRAPHSIZE)
 {
 
 }
 
 
 void Game::Init() {
-	
-	//grid.CreateGrid();
 	//NodeCreator nc;
-	//nc.Create();
+	//nc.Create2(GRAPHSIZE);
+	m_window.setFramerateLimit(60);
 	mg.CreateGraph();
 	grid.CreateGridFromGraph(&mg.m_graph);
-	//mg.AStar();
-
 }
 
 void Game::Update() {

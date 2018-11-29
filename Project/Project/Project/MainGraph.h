@@ -8,7 +8,7 @@ class MainGraph
 	typedef GraphNode<std::string, int> Node;
 
 public:
-	MainGraph();
+	MainGraph(int size);
 	~MainGraph();
 	void CreateGraph();
 	void AStar();

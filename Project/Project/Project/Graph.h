@@ -38,8 +38,8 @@ private:
 	std::vector<Node *> m_nodes;
 	Node* start = m_nodes[11];
 	Node* goal = m_nodes[88];
-	bool foundGoal;
 
+	int los;
 
 public:           
     // Constructor and destructor functions
@@ -48,6 +48,7 @@ public:
 
 	vector<Vector2f> hitPoints;
 	vector<Vector2f> hitNodes;
+	bool foundGoal;
     // Accessors
     Node * nodeIndex(int index) const {
 		return m_nodes.at(index);
@@ -67,11 +68,11 @@ public:
     void clearMarks();
     void depthFirst( Node* pNode, std::function<void(Node *)> f_visit);
     void breadthFirst( Node* pNode, std::function<void(Node *)> f_visit);
-	void adaptedBreadthFirst( Node* pCurrent, Node* pGoal );	
+	void adaptedBreadthFirst( Node* pCurrent, Node* pGoal );
+	void Reset();
 	void AStar();	
 	Node* GetCheapestNode(vector<Node*> openList);
 	void ThetaStar(sf::Image image);
-	void UpdateVertex(Node* pCurrent, Node* pNeighbour, vector<Node*> open);
 	bool LineOfSight(Node* pCurrent, Node* pNeighbour, sf::Image image);
 	void ShowInfo(string info);
 };
@@ -85,6 +86,19 @@ public:
 template<class NodeType, class ArcType>
 Graph<NodeType, ArcType>::Graph( int maxNodes ) : m_nodes( maxNodes, nullptr) 
 {  
+}
+
+
+template<class NodeType, class ArcType>
+void Graph<NodeType, ArcType>::Reset() {
+	goal->SetPath(false);
+	hitPoints.clear();
+	hitNodes.clear();
+	foundGoal = false;
+	for (int i = 0; i < m_nodes.size(); i++)
+	{
+		m_nodes.at(i)->setPrevious(NULL);
+	}
 }
 
 // ----------------------------------------------------------------
@@ -346,6 +360,8 @@ GraphNode<NodeType, ArcType>* Graph<NodeType, ArcType>::GetNodeFromPos(Vector2i 
 template<class NodeType, class ArcType>
 void Graph<NodeType, ArcType>::ShowInfo(string info) {
 	int a = 0;
+	int s = 0;
+	Clock clock;
 	while (!foundGoal) {
 		switch (a)
 		{
@@ -372,8 +388,11 @@ void Graph<NodeType, ArcType>::ShowInfo(string info) {
 		default:
 			break;
 		}
-		this_thread::sleep_for(chrono::seconds(2));
+		
+		this_thread::sleep_for(chrono::seconds(1));
 	}
+	float time = clock.getElapsedTime().asSeconds();
+	//cout << info << " took " << time << " seconds." << endl;
 }
 
 // ----------------------------------------------------------------
@@ -386,20 +405,22 @@ void Graph<NodeType, ArcType>::ShowInfo(string info) {
 // ----------------------------------------------------------------
 template<class NodeType, class ArcType>
 void Graph<NodeType, ArcType>::AStar() {
-	hitPoints.clear();
-	hitNodes.clear();
-	foundGoal = false;
+	Reset();
 	thread* t1 = new thread(&Graph<NodeType, ArcType>::ShowInfo, this, "A Star");
+	Clock clock;
+
 	vector<Node*> closedList;
 	vector<Node*> openList = { start };
 	vector<Node*> cameFrom;
-
+	int nodes = 0, nb = 0;
+	
 	start->gValue = 0;
 	start->hValue = start->Diagonal(goal);
 	while (!openList.empty()) {
+		nodes++;
 		Node* cheapest;
 
-		float bestF = 9999;
+		float bestF = 9999999;
 		float index = -1;
 
 		for (int i = 0; i < openList.size(); i++)
@@ -422,7 +443,7 @@ void Graph<NodeType, ArcType>::AStar() {
 		if (current == goal) {
 			cout << "Found Goal" << endl;
 			foundGoal = true;
-			goal->SetPath();
+			goal->SetPath(true);
 			break;
 		}
 		typedef list<Arc> arclist;
@@ -430,6 +451,7 @@ void Graph<NodeType, ArcType>::AStar() {
 		auto it = arcs.begin();
 		for (; it != arcs.end(); ++it)
 		{
+			nb++;
 			Arc arc = *it;
 			Node* neighbour = arc.node();
 			//cout << "Checking neighbour: " << neighbour->data() << endl;
@@ -449,7 +471,7 @@ void Graph<NodeType, ArcType>::AStar() {
 				}
 			}
 			if (!inOpen) {
-				neighbour->gValue = 99999;
+				neighbour->gValue = 99999999;
 				//neighbour->setPrevious(NULL);
 			}
 			float oldGValue = neighbour->gValue;
@@ -473,12 +495,22 @@ void Graph<NodeType, ArcType>::AStar() {
 			}
 		}
 	}
+
+	float time = clock.getElapsedTime().asSeconds();
+	cout << "A* took " << time << " seconds." << endl;
+	float pathLength = 0;
+	for (Node* node = goal; node != NULL; node = node->previous()) {
+		if (node->previous()) {
+			float a = abs(node->GetXPos() - node->previous()->GetXPos());
+			float b = abs(node->GetYPos() - node->previous()->GetYPos());
+			float l = sqrtf(powf(a, 2) + powf(b, 2));
+			pathLength += l;
+		}
+	}
+	cout << "Length of the path is: " << pathLength << endl;
+	cout << nodes << " nodes expanded" << endl;
+	cout << nb << " neighbours checked" << endl;
 	t1->join();
-	/*for (Node* node = goal; node != NULL; node = node->previous()) {
-		cout << node->data() << endl;
-		//node->SetPath();
-		cameFrom.push_back(node);
-	}*/
 }
 
 
@@ -522,19 +554,20 @@ GraphNode<NodeType, ArcType>* Graph<NodeType, ArcType>::GetCheapestNode(vector<N
 // ----------------------------------------------------------------
 template<class NodeType, class ArcType>
 void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
-	hitPoints.clear();
-	hitNodes.clear();
-	foundGoal = false;
+	Reset();
 
 	thread* t1 = new thread(&Graph<NodeType, ArcType>::ShowInfo, this, "Theta Star");
+	Clock clock;
 	vector<Node*> closedList;
 	vector<Node*> openList = { start };
 	vector<Node*> cameFrom;
-
+	int nodes = 0, nb = 0;
+	los = 0;
 	start->gValue = 0;
 	start->hValue = start->Euclidean(goal);
 	//start->setPrevious(start);
 	while (!openList.empty()) {
+		nodes++;
 		Node* cheapest;
 
 		float bestF = 9999;
@@ -559,7 +592,7 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 		if (current == goal) {
 			cout << "Found Goal" << endl;
 			foundGoal = true;
-			goal->SetPath();
+			goal->SetPath(true);
 			break;
 		}
 		typedef list<Arc> arclist;
@@ -567,6 +600,7 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 		auto it = arcs.begin();
 		for (; it != arcs.end(); ++it)
 		{
+			nb++;
 			Arc arc = *it;
 			Node* neighbour = arc.node();
 			//cout << "Checking neighbour: " << neighbour->data() << endl;
@@ -634,59 +668,27 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 			}
 		}
 	}
+
+	float time = clock.getElapsedTime().asSeconds();
+	cout << "Theta* took " << time << " seconds." << endl;
+
+	float pathLength = 0;
+	for (Node* node = goal; node != NULL; node = node->previous()) {
+		if (node->previous()) {			
+			float a = abs(node->GetXPos() - node->previous()->GetXPos());
+			float b = abs(node->GetYPos() - node->previous()->GetYPos());
+			float l = sqrtf(powf(a, 2) + powf(b, 2));
+			pathLength += l;
+		}
+	}
+	cout << "Length of the path is: " << pathLength << endl;
+	cout << nodes << " nodes expanded" << endl;
+	cout << nb << " neighbours checked" << endl;
+	cout << los << " amount of line-of-sight checks" << endl;
+
 	t1->join();
-	/*for (Node* node = goal; node != NULL; node = node->previous()) {
-		cout << node->data() << endl;
-		if (node == start) break;
-		//node->SetPath();
-		cameFrom.push_back(node);
-	}*/
 }
 
-
-// ----------------------------------------------------------------
-//  Name:           UpdateVertex
-//  Description:    Updates the cost between two nodes
-//  Arguments:      The first parameter is the current node.
-//                  The second parameter is the neighbour node.
-//  Return Value:   None.
-// ----------------------------------------------------------------
-template<class NodeType, class ArcType>
-void Graph<NodeType, ArcType>::UpdateVertex(Node* current, Node *neighbour, vector<Node*> open) {
-	if (LineOfSight(current->previous(), neighbour, NULL)) {
-		if (current->previous()->gValue + current->previous()->Euclidean(neighbour) < neighbour->gValue) {
-			neighbour->gValue = current->previous()->gValue + current->previous()->Euclidean(neighbour);
-			neighbour->setPrevious(current->previous());
-			for (int i = 0; i < open.size(); i++)
-			{
-				if (open[i] == neighbour) {
-					auto it = open.begin();
-					advance(it, i);
-					open.erase(it);
-				}
-			}
-			open.push_back(neighbour);
-		}
-	}
-	else {
-		if (current->gValue + current->Euclidean(neighbour) < neighbour->gValue) {
-			neighbour->gValue = current->gValue + current->Euclidean(neighbour);
-			neighbour->setPrevious(current);
-			for (int i = 0; i < open.size(); i++)
-			{
-				if (open[i] == neighbour) {
-					auto it = open.begin();
-					advance(it, i);
-					open.erase(it);
-				}
-			}
-			open.push_back(neighbour);
-		}
-
-	}
-
-
-}
 // ----------------------------------------------------------------
 //  Name:           LineOfSight
 //  Description:    Does a line-of-sight check between two nodes
@@ -697,27 +699,26 @@ void Graph<NodeType, ArcType>::UpdateVertex(Node* current, Node *neighbour, vect
 template<class NodeType, class ArcType>
 bool Graph<NodeType, ArcType>::LineOfSight(Node* current, Node *neighbour, sf::Image image) {
 	if (!current || current == neighbour) { return false; }
+	los++;
 	Vector2f line(neighbour->GetXPos() - current->GetXPos(),  neighbour->GetYPos() - current->GetYPos());
 	//normalize the vector
 	float length = sqrtf(powf(line.x, 2) + powf(line.y, 2));
 	line.x  = line.x / length;
 	line.y  = line.y / length;
 	//set the lengt of the vector to 40(half the length of one tile)
-	float templength = 40;
+	float templength = 20;
 	Vector2f tempLine(line.x * templength, line.y * templength);
 	while (templength < length) {
-		tempLine.x = line.x * templength; tempLine.y = line.y * templength;
+		tempLine.x = line.x * templength; 
+		tempLine.y = line.y * templength;
 		Color pixel = image.getPixel(current->GetXPos() + tempLine.x, current->GetYPos() + tempLine.y);
 		if (pixel == Color(128, 128, 128)) { 
 			hitPoints.push_back(Vector2f(current->GetXPos() + tempLine.x, current->GetYPos() + tempLine.y));
 			hitNodes.push_back(Vector2f(current->GetXPos(), current->GetYPos()));
 			return false; 
 		}
-		templength += 40;
+		templength += 20;
 	}
-	//hitPoints.push_back(Vector2f(current->GetXPos() + tempLine.x, current->GetYPos() + tempLine.y));
-	//hitNodes.push_back(Vector2f(current->GetXPos(), current->GetYPos()));
-	//Color pixel = image.getPixel(current->GetXPos() + line.x, current->GetYPos() + line.y);
 	return true;
 
 }
