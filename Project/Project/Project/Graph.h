@@ -73,6 +73,7 @@ public:
 	void AStar();	
 	Node* GetCheapestNode(vector<Node*> openList);
 	void ThetaStar(sf::Image image);
+	void LazyThetaStar(sf::Image image);
 	bool LineOfSight(Node* pCurrent, Node* pNeighbour, sf::Image image);
 	void ShowInfo(string info);
 };
@@ -456,10 +457,12 @@ void Graph<NodeType, ArcType>::AStar() {
 			Node* neighbour = arc.node();
 			//cout << "Checking neighbour: " << neighbour->data() << endl;
 			if (neighbour->IsObtacle()) { continue; }
+			bool inClosed = false;
 			for (int j = 0; j < closedList.size(); j++)
 			{
-				if (neighbour == closedList[j]) { break; }
+				if (neighbour == closedList[j]) { inClosed = true; }
 			}
+			if (inClosed) { continue; }
 			float gScore = current->gValue + arc.weight();
 
 			bool inOpen = false;
@@ -605,10 +608,12 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 			Node* neighbour = arc.node();
 			//cout << "Checking neighbour: " << neighbour->data() << endl;
 			if (neighbour->IsObtacle()) { continue; }
+			bool inClosed = false;
 			for (int j = 0; j < closedList.size(); j++)
 			{
-				if (neighbour == closedList[j]) { break; }
+				if (neighbour == closedList[j]) { inClosed = true; }
 			}
+			if (inClosed) { continue; }
 			float gScore = current->gValue + arc.weight();
 
 			bool inOpen = false;
@@ -690,6 +695,153 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 }
 
 // ----------------------------------------------------------------
+//  Name:           LazyThetaStar
+//  Description:    LazyPerforms a ThetaStar traversal the starting node
+//                  specified as an input parameter, terminating at the goal.
+//  Arguments:      The first parameter is the starting node.
+//                  The second parameter is the goal node.
+//  Return Value:   None.
+// ----------------------------------------------------------------
+template<class NodeType, class ArcType>
+void Graph<NodeType, ArcType>::LazyThetaStar(sf::Image image) {
+	Reset();
+	string g = "No Goal Found";
+	thread* t1 = new thread(&Graph<NodeType, ArcType>::ShowInfo, this, "Lazy Theta Star");
+	Clock clock;
+	vector<Node*> closedList;
+	vector<Node*> openList = { start };
+	vector<Node*> cameFrom;
+	int nodes = 0, nb = 0;
+	los = 0;
+	start->gValue = 0;
+	start->hValue = start->Euclidean(goal);
+	start->setPrevious(start);
+	while (!openList.empty()) {
+		nodes++;
+		Node* cheapest;
+
+		float bestF = 99999;
+		float index = -1;
+
+		for (int i = 0; i < openList.size(); i++)
+		{
+			if (openList[i]->GetFValue() < bestF)//Finding the cheapest cell in this list
+			{
+				bestF = openList[i]->GetFValue();
+				index = i;
+			}
+		}
+
+		cheapest = openList[index];
+		auto ite = openList.begin();
+		advance(ite, index);
+		openList.erase(ite);
+		//cheapest = openList.back();
+		//openList.pop_back();
+		Node* current = cheapest;//GetCheapestNode(openList);
+
+		if (!(LineOfSight(current->previous(), current, image))) {
+			current->gValue = 999999;
+			typedef list<Arc> arclist;
+			list<Arc> arcs = current->arcList();
+			auto it = arcs.begin();
+			for (; it != arcs.end(); ++it)
+			{
+				Arc arc = *it;
+				Node* neighbour = arc.node();
+				for (int i = 0; i < closedList.size(); i++)
+				{
+					if (closedList[i] == neighbour) {
+						float newG = neighbour->gValue + current->Euclidean(neighbour);
+						if (newG <= current->gValue) {
+							current->gValue = newG;
+							current->hValue = current->Euclidean(goal);
+							current->setPrevious(neighbour);
+						}
+
+					}
+				}
+			}
+		}
+
+		closedList.push_back(current);
+		//cout << "Checking current: " << current->data() << endl;
+		if (current == goal) {
+			g = "Found Goal";
+			foundGoal = true;
+			goal->SetPath(true);
+			break;
+		}
+		typedef list<Arc> arclist;
+		list<Arc> arcs = current->arcList();
+		auto it = arcs.begin();
+		for (; it != arcs.end(); ++it)
+		{
+			nb++;
+			Arc arc = *it;
+			Node* neighbour = arc.node();
+			//cout << "Checking neighbour: " << neighbour->data() << endl;
+			if (neighbour->IsObtacle() || neighbour == start) {
+				continue;
+			}
+			bool inClosed = false;
+			for (int j = 0; j < closedList.size(); j++)
+			{
+				if (neighbour == closedList[j]) { inClosed = true; }
+			}
+			if (inClosed) { continue; }
+
+			bool inOpen = false;
+			for (int j = 0; j < openList.size(); j++)
+			{
+				if (openList[j] == neighbour)
+				{
+					inOpen = true;
+					break;
+				}
+			}
+			if (!inOpen) {
+				neighbour->gValue = 99999;
+				//neighbour->setPrevious(NULL);
+			}
+			float newG = current->previous()->gValue + current->previous()->Euclidean(neighbour);
+			if (newG <= neighbour->gValue) {
+				if (neighbour != current->previous()->previous()) {
+					neighbour->gValue = current->previous()->gValue + current->previous()->Euclidean(neighbour);
+					neighbour->hValue = neighbour->Euclidean(goal);
+					neighbour->setPrevious(current->previous());
+					openList.push_back(neighbour);
+				}
+			}
+
+		}
+	}
+	cout << g << endl;
+
+	float time = clock.getElapsedTime().asSeconds();
+	cout << "Lazy Theta* took " << time << " seconds." << endl;
+
+	float pathLength = 0;
+	for (Node* node = goal; node != NULL; node = node->previous()) {
+		
+		cout << node->data() << endl;
+		if (node->previous()) {
+			float a = abs(node->GetXPos() - node->previous()->GetXPos());
+			float b = abs(node->GetYPos() - node->previous()->GetYPos());
+			float l = sqrtf(powf(a, 2) + powf(b, 2));
+			pathLength += l;
+		}
+		if (node == start) { break; }
+	}
+	cout << "Length of the path is: " << pathLength << endl;
+	cout << nodes << " nodes expanded" << endl;
+	cout << nb << " neighbours checked" << endl;
+	cout << los << " line-of-sight checks" << endl;
+
+	t1->join();
+}
+
+// ----------------------------------------------------------------
 //  Name:           LineOfSight
 //  Description:    Does a line-of-sight check between two nodes
 //  Arguments:      The first parameter is the current node.
@@ -698,7 +850,7 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 // ----------------------------------------------------------------
 template<class NodeType, class ArcType>
 bool Graph<NodeType, ArcType>::LineOfSight(Node* current, Node *neighbour, sf::Image image) {
-	if (!current || current == neighbour) { return false; }
+	if (!current || !neighbour ) { return false; } //||current == neighbour
 	los++;
 	Vector2f line(neighbour->GetXPos() - current->GetXPos(),  neighbour->GetYPos() - current->GetYPos());
 	//normalize the vector

@@ -67,6 +67,17 @@ void Game::Update() {
 			isPressed = true;
 		}
 	}
+	else if (GetKeyState('C') & 0x8000) {
+		if (!isPressed) {
+			Vector2u windowSize = m_window.getSize();
+			Texture texture;
+			texture.create(windowSize.x, windowSize.y);
+			texture.update(m_window);
+			Image image = texture.copyToImage();
+			mg.LazyThetaStar(image);
+			isPressed = true;
+		}
+	}
 	else if (GetKeyState(VK_RIGHT) & 0x8000) {
 		if (!isPressed) {
 			isPressed = true;

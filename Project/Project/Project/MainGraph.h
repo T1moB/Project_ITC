@@ -13,6 +13,7 @@ public:
 	void CreateGraph();
 	void AStar();
 	void ThetaStar(sf::Image image);
+	void LazyThetaStar(sf::Image image);
 	vector<Vector2f> GetHitPoints() { return m_graph.hitPoints; }
 	void Draw(sf::RenderWindow & window);
 	void SetStartGoal(Vector2i pos);

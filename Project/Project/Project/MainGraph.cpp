@@ -81,6 +81,10 @@ void MainGraph::ThetaStar(sf::Image image) {
 	m_graph.ThetaStar(image);
 }
 
+void MainGraph::LazyThetaStar(sf::Image image) {
+	m_graph.LazyThetaStar(image);
+}
+
 void MainGraph::Draw(sf::RenderWindow & window) {
 	for (int i = 0; i < m_graph.hitPoints.size(); i++)
 	{

@@ -122,6 +122,7 @@ void Grid::DrawFromGraph(Graph<std::string, int>* g) {
 				line[1].color = sf::Color::Blue;
 				m_window.draw(line);
 			}
+			if (node == g->GetStart()) { break; }
 		}
 	}
 	CircleShape c(7.5);
