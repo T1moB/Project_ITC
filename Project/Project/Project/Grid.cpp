@@ -41,22 +41,11 @@ void Grid::CreateGridFromGraph(Graph<std::string, int>* g ) {
 		for (int j = 0; j < gridSize; j++)
 		{
 			int index = i * gridSize + j;
-			grid[index] = Vector2f(j * sizeX, i * sizeY);
 			g->nodeIndex(index)->SetPosition(j * sizeX + 0.5*sizeX, i * sizeY + 0.5*sizeY);
 			obstacles[index] = false;
 			int r = rand() % 5;
 			if (r == 0 && index != 11 & index != 88) {
-				obstacles[index] = true;
 				g->nodeIndex(index)->SetAsObstacle();
-				/*list<Arc> arcs = g->nodeIndex(index)->arcList();
-				typedef list<Arc> arclist;
-				auto it = arcs.begin();
-				for (; it != arcs.end(); ++it)
-				{
-					Arc arc = *it;
-					Node* neighbour = arc.node();
-					neighbour->removeArc(g->nodeIndex(index));
-				}*/
 			}
 		}
 	}
@@ -84,6 +73,9 @@ void Grid::Draw() {
 }
 
 void Grid::DrawFromGraph(Graph<std::string, int>* g) {
+	RectangleShape background(Vector2f(m_window.getSize().x, m_window.getSize().y));
+	background.setFillColor(Color(10, 175, 10));
+	m_window.draw(background);
 	Font font;
 	int pathIndex = 0;
 	if (!font.loadFromFile("Data/OpenSans.ttf")) {
@@ -94,15 +86,15 @@ void Grid::DrawFromGraph(Graph<std::string, int>* g) {
 		for (int j = 0; j < gridSize; j++)
 		{
 			int index = i * gridSize + j;
-			RectangleShape square(Vector2f(sizeX, sizeY));
-			square.setPosition(g->nodeIndex(index)->GetXPos() - +0.5*sizeX, g->nodeIndex(index)->GetYPos() - +0.5*sizeY);
-			square.setFillColor(Color(10, 175, 10));
+			//square.setFillColor(Color(10, 175, 10));
 			if (g->nodeIndex(index)->IsObtacle()) {
+				RectangleShape square(Vector2f(sizeX, sizeY));
+				square.setPosition(g->nodeIndex(index)->GetXPos() - +0.5*sizeX, g->nodeIndex(index)->GetYPos() - +0.5*sizeY);
 				square.setFillColor(Color(128, 128, 128));
+				m_window.draw(square);
 			}
 			g->nodeIndex(index)->sizeX = sizeX;
 			g->nodeIndex(index)->sizeY = sizeY;
-			m_window.draw(square);
 			if (g->nodeIndex(index)->IsPath()) {
 				pathIndex = index;
 			}

@@ -361,8 +361,6 @@ GraphNode<NodeType, ArcType>* Graph<NodeType, ArcType>::GetNodeFromPos(Vector2i 
 template<class NodeType, class ArcType>
 void Graph<NodeType, ArcType>::ShowInfo(string info) {
 	int a = 0;
-	int s = 0;
-	Clock clock;
 	while (!foundGoal) {
 		switch (a)
 		{
@@ -392,8 +390,6 @@ void Graph<NodeType, ArcType>::ShowInfo(string info) {
 		
 		this_thread::sleep_for(chrono::seconds(1));
 	}
-	float time = clock.getElapsedTime().asSeconds();
-	//cout << info << " took " << time << " seconds." << endl;
 }
 
 // ----------------------------------------------------------------
@@ -418,7 +414,6 @@ void Graph<NodeType, ArcType>::AStar() {
 	start->gValue = 0;
 	start->hValue = start->Diagonal(goal);
 	while (!openList.empty()) {
-		nodes++;
 		Node* cheapest;
 
 		float bestF = 9999999;
@@ -438,6 +433,7 @@ void Graph<NodeType, ArcType>::AStar() {
 		advance(ite, index);
 		openList.erase(ite);
 		Node* current = cheapest;// GetCheapestNode(openList);
+		nodes++;
 		closedList.push_back(current);
 
 		//cout << "Checking current: " << current->data() << endl;
@@ -501,8 +497,10 @@ void Graph<NodeType, ArcType>::AStar() {
 
 	float time = clock.getElapsedTime().asSeconds();
 	cout << "A* took " << time << " seconds." << endl;
+	int pathNodes = 0;
 	float pathLength = 0;
 	for (Node* node = goal; node != NULL; node = node->previous()) {
+		pathNodes++;
 		if (node->previous()) {
 			float a = abs(node->GetXPos() - node->previous()->GetXPos());
 			float b = abs(node->GetYPos() - node->previous()->GetYPos());
@@ -513,6 +511,7 @@ void Graph<NodeType, ArcType>::AStar() {
 	cout << "Length of the path is: " << pathLength << endl;
 	cout << nodes << " nodes expanded" << endl;
 	cout << nb << " neighbours checked" << endl;
+	cout << pathNodes << " nodes in the path" << endl;
 	t1->join();
 }
 
@@ -568,9 +567,8 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 	los = 0;
 	start->gValue = 0;
 	start->hValue = start->Euclidean(goal);
-	//start->setPrevious(start);
+	start->setPrevious(start);
 	while (!openList.empty()) {
-		nodes++;
 		Node* cheapest;
 
 		float bestF = 9999;
@@ -590,6 +588,7 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 		advance(ite, index);
 		openList.erase(ite);
 		Node* current = cheapest;//GetCheapestNode(openList);
+		nodes++;
 		closedList.push_back(current);
 		//cout << "Checking current: " << current->data() << endl;
 		if (current == goal) {
@@ -676,20 +675,23 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 
 	float time = clock.getElapsedTime().asSeconds();
 	cout << "Theta* took " << time << " seconds." << endl;
-
+	int pathnodes = 0;
 	float pathLength = 0;
 	for (Node* node = goal; node != NULL; node = node->previous()) {
+		pathnodes++;
 		if (node->previous()) {			
 			float a = abs(node->GetXPos() - node->previous()->GetXPos());
 			float b = abs(node->GetYPos() - node->previous()->GetYPos());
 			float l = sqrtf(powf(a, 2) + powf(b, 2));
 			pathLength += l;
 		}
+		if (node == start) { break; }
 	}
 	cout << "Length of the path is: " << pathLength << endl;
 	cout << nodes << " nodes expanded" << endl;
 	cout << nb << " neighbours checked" << endl;
-	cout << los << " amount of line-of-sight checks" << endl;
+	cout << pathnodes << " nodes in the path" << endl;
+	cout << los << " of line-of-sight checks" << endl;
 
 	t1->join();
 }
@@ -717,7 +719,6 @@ void Graph<NodeType, ArcType>::LazyThetaStar(sf::Image image) {
 	start->hValue = start->Euclidean(goal);
 	start->setPrevious(start);
 	while (!openList.empty()) {
-		nodes++;
 		Node* cheapest;
 
 		float bestF = 99999;
@@ -739,6 +740,7 @@ void Graph<NodeType, ArcType>::LazyThetaStar(sf::Image image) {
 		//cheapest = openList.back();
 		//openList.pop_back();
 		Node* current = cheapest;//GetCheapestNode(openList);
+		nodes++;
 
 		if (!(LineOfSight(current->previous(), current, image))) {
 			current->gValue = 999999;
@@ -755,7 +757,7 @@ void Graph<NodeType, ArcType>::LazyThetaStar(sf::Image image) {
 						float newG = neighbour->gValue + current->Euclidean(neighbour);
 						if (newG <= current->gValue) {
 							current->gValue = newG;
-							current->hValue = current->Euclidean(goal);
+							//current->hValue = current->Euclidean(goal);
 							current->setPrevious(neighbour);
 						}
 
@@ -810,6 +812,15 @@ void Graph<NodeType, ArcType>::LazyThetaStar(sf::Image image) {
 					neighbour->gValue = current->previous()->gValue + current->previous()->Euclidean(neighbour);
 					neighbour->hValue = neighbour->Euclidean(goal);
 					neighbour->setPrevious(current->previous());
+
+					for (int i = 0; i < openList.size(); i++)
+					{
+						if (openList[i] == neighbour) {
+							auto it = openList.begin();
+							advance(it, i);
+							openList.erase(it);
+						}
+					}
 					openList.push_back(neighbour);
 				}
 			}
@@ -820,11 +831,10 @@ void Graph<NodeType, ArcType>::LazyThetaStar(sf::Image image) {
 
 	float time = clock.getElapsedTime().asSeconds();
 	cout << "Lazy Theta* took " << time << " seconds." << endl;
-
+	int pathNodes = 0;
 	float pathLength = 0;
 	for (Node* node = goal; node != NULL; node = node->previous()) {
-		
-		cout << node->data() << endl;
+		pathNodes++;
 		if (node->previous()) {
 			float a = abs(node->GetXPos() - node->previous()->GetXPos());
 			float b = abs(node->GetYPos() - node->previous()->GetYPos());
@@ -836,6 +846,7 @@ void Graph<NodeType, ArcType>::LazyThetaStar(sf::Image image) {
 	cout << "Length of the path is: " << pathLength << endl;
 	cout << nodes << " nodes expanded" << endl;
 	cout << nb << " neighbours checked" << endl;
+	cout << pathNodes << " nodes in the path" << endl;
 	cout << los << " line-of-sight checks" << endl;
 
 	t1->join();

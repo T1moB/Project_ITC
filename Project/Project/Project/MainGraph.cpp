@@ -54,12 +54,10 @@ void MainGraph::SetStartGoal(Vector2i pos) {
 	}
 	m_graph.Reset();
 	if (!start) {
-		cout << "Setting Start to: " << n->data() << endl;
 		m_graph.SetStart(n);
 		start = true;
 	}
 	else{
-		cout << "Setting Goal to: " << n->data() << endl;
 		m_graph.SetGoal(n);
 		start = false;
 	}

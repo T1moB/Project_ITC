@@ -35,14 +35,12 @@ void Game::Update() {
 	}
 	if (Mouse::isButtonPressed(Mouse::Left)) {
 		if (!mouseIsPressed) {
-			cout << Mouse::getPosition().x << " , " << Mouse::getPosition().y << endl;
 			mg.SetStartGoal(Mouse::getPosition(m_window));
 			mouseIsPressed = true;
 		}
 	}
 	else if (Mouse::isButtonPressed(Mouse::Right)) {
 		if (!mouseIsPressed) {
-			cout << Mouse::getPosition().x << " , " << Mouse::getPosition().y << endl;
 			mg.SetAObstacle(Mouse::getPosition(m_window));
 			mouseIsPressed = true;
 		}
