@@ -4,6 +4,7 @@
 #include <string>
 #include "Grid.h"
 #include <SFML/Graphics.hpp>
+#include <random>
 
 #include "GraphNode.h"
 
@@ -24,7 +25,6 @@ MainGraph::~MainGraph()
 }
 
 void MainGraph::CreateGraph() {
-	//Graph<std::string, int> graph(100);
 
 	std::string nodeLabel;
 	int i = 0;
@@ -34,12 +34,11 @@ void MainGraph::CreateGraph() {
 	while (myfile >> nodeLabel) {
 		m_graph.addNode(nodeLabel, i++);
 	}
-
 	myfile.close();
 	myfile.open("Data/arcs2.txt");
 	int from = 0, to= 0;
 	float weight;
-	while (from != 399  && to != 398) {
+	while (from != i - 1  && to != i - 2) {
 		myfile >> from >> to >> weight;
 		m_graph.addArc(from, to, weight);
 	}
@@ -81,6 +80,26 @@ void MainGraph::ThetaStar(sf::Image image) {
 
 void MainGraph::LazyThetaStar(sf::Image image) {
 	m_graph.LazyThetaStar(image);
+}
+void MainGraph::Run(sf::Image image) {
+	srand(time(0));
+	for (size_t i = 0; i < 20; i++)
+	{
+		do
+		{
+			int r = rand() % 2500;
+			m_graph.SetStart(m_graph.nodeIndex(r));
+		} while (m_graph.GetStart()->IsObtacle());
+		do
+		{
+			int r = rand() % 2500;
+			m_graph.SetGoal(m_graph.nodeIndex(r));
+		} while (m_graph.GetGoal()->IsObtacle());
+
+		m_graph.AStar();
+		m_graph.ThetaStar(image);
+		m_graph.LazyThetaStar(image);
+	}
 }
 
 void MainGraph::Draw(sf::RenderWindow & window) {

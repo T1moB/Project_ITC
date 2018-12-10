@@ -11,29 +11,8 @@ Grid::Grid(sf::RenderWindow & window, int size) : m_window(window), gridSize(siz
 {
 	srand(time(0));
 	sizeX = window.getSize().x/gridSize;	
-	//sizeX = 80;	
 	sizeY = window.getSize().y/gridSize;
-	//sizeY = 80;
-	grid = new Vector2f[gridSize*gridSize];
-	obstacles = new bool[gridSize*gridSize];
 }
-
-
-void Grid::CreateGrid() {
-	for (int i = 0; i < gridSize; i++)
-	{
-		for (int j = 0; j < gridSize; j++)
-		{
-			int index = i * gridSize + j;
-			grid[index] = Vector2f(j * sizeX, i * sizeY);
-			obstacles[index] = false;
-			int r = (int)std::rand() % 10;
-			if(r == 0)
-				obstacles[index] = true;
-		}
-	}
-}
-
 
 void Grid::CreateGridFromGraph(Graph<std::string, int>* g ) {
 	for (int i = 0; i < gridSize; i++)
@@ -42,34 +21,14 @@ void Grid::CreateGridFromGraph(Graph<std::string, int>* g ) {
 		{
 			int index = i * gridSize + j;
 			g->nodeIndex(index)->SetPosition(j * sizeX + 0.5*sizeX, i * sizeY + 0.5*sizeY);
-			obstacles[index] = false;
 			int r = rand() % 5;
-			if (r == 0 && index != 11 & index != 88) {
+			if (r == 0 && index != 42 & index != 274) {
 				g->nodeIndex(index)->SetAsObstacle();
 			}
 		}
 	}
-	g->SetStart(g->nodeIndex(11));
-	g->SetGoal(g->nodeIndex(88));
-}
-
-void Grid::Draw() {
-	RectangleShape background(Vector2f(m_window.getSize().x, m_window.getSize().y));
-	background.setFillColor(Color(10,175,10));
-	m_window.draw(background);
-	for (int i = 0; i < gridSize; i++)
-	{
-		for (int j = 0; j < gridSize; j++)
-		{
-			int index = i * gridSize + j;
-			if (obstacles[index]) {
-				RectangleShape square(Vector2f(sizeX, sizeY));
-				square.setPosition(grid[index].x, grid[index].y);
-				square.setFillColor(Color(128, 128, 128));
-				m_window.draw(square);
-			}
-		}
-	}
+	g->SetStart(g->nodeIndex(42));
+	g->SetGoal(g->nodeIndex(274));
 }
 
 void Grid::DrawFromGraph(Graph<std::string, int>* g) {
@@ -86,7 +45,6 @@ void Grid::DrawFromGraph(Graph<std::string, int>* g) {
 		for (int j = 0; j < gridSize; j++)
 		{
 			int index = i * gridSize + j;
-			//square.setFillColor(Color(10, 175, 10));
 			if (g->nodeIndex(index)->IsObtacle()) {
 				RectangleShape square(Vector2f(sizeX, sizeY));
 				square.setPosition(g->nodeIndex(index)->GetXPos() - +0.5*sizeX, g->nodeIndex(index)->GetYPos() - +0.5*sizeY);
@@ -102,9 +60,9 @@ void Grid::DrawFromGraph(Graph<std::string, int>* g) {
 	}
 	if (g->foundGoal) {
 		for (Node* node = g->nodeIndex(pathIndex); node != NULL; node = node->previous()) {
-			CircleShape circle(7.5);
+			CircleShape circle(4);
 			circle.setFillColor(Color::Blue);
-			circle.setPosition(node->GetXPos() - 4, node->GetYPos() - 4);
+			circle.setPosition(node->GetXPos() - 2, node->GetYPos() - 2);
 			m_window.draw(circle);
 			if (node->previous()) {
 				sf::VertexArray line(sf::LinesStrip, 2);
@@ -117,12 +75,12 @@ void Grid::DrawFromGraph(Graph<std::string, int>* g) {
 			if (node == g->GetStart()) { break; }
 		}
 	}
-	CircleShape c(7.5);
+	CircleShape c(4);
 	c.setFillColor(Color::Magenta);
-	c.setPosition(g->GetStart()->GetXPos() - 4, g->GetStart()->GetYPos() - 4);
+	c.setPosition(g->GetStart()->GetXPos() - 2, g->GetStart()->GetYPos() - 2);
 	m_window.draw(c);
 	c.setFillColor(Color::Yellow);
-	c.setPosition(g->GetGoal()->GetXPos() - 4, g->GetGoal()->GetYPos() - 4);
+	c.setPosition(g->GetGoal()->GetXPos() - 2, g->GetGoal()->GetYPos() - 2);
 	m_window.draw(c);
 
 }

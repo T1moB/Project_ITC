@@ -6,6 +6,7 @@
 #include <vector>
 #include <functional>
 #include <iostream>
+#include <fstream>
 #include <thread>
 #include <chrono>
 #include <SFML/Graphics.hpp>
@@ -38,7 +39,8 @@ private:
 	std::vector<Node *> m_nodes;
 	Node* start = m_nodes[11];
 	Node* goal = m_nodes[88];
-
+	string fileName = "Data/save.txt";
+	ofstream savefile;
 	int los;
 
 public:           
@@ -66,9 +68,6 @@ public:
     void removeArc( int from, int to );
     Arc* getArc( int from, int to );        
     void clearMarks();
-    void depthFirst( Node* pNode, std::function<void(Node *)> f_visit);
-    void breadthFirst( Node* pNode, std::function<void(Node *)> f_visit);
-	void adaptedBreadthFirst( Node* pCurrent, Node* pGoal );
 	void Reset();
 	void AStar();	
 	Node* GetCheapestNode(vector<Node*> openList);
@@ -87,6 +86,8 @@ public:
 template<class NodeType, class ArcType>
 Graph<NodeType, ArcType>::Graph( int maxNodes ) : m_nodes( maxNodes, nullptr) 
 {  
+
+	savefile.open(fileName);
 }
 
 
@@ -263,90 +264,6 @@ void Graph<NodeType, ArcType>::clearMarks() {
      }
 }
 
-
-// ----------------------------------------------------------------
-//  Name:           depthFirst
-//  Description:    Performs a depth-first traversal on the specified 
-//                  node.
-//  Arguments:      The first argument is the starting node
-//                  The second argument is the processing function.
-//  Return Value:   None.
-// ----------------------------------------------------------------
-template<class NodeType, class ArcType>
-void Graph<NodeType, ArcType>::depthFirst( Node* node, std::function<void(Node *)> f_visit ) {
-     if( nullptr != node ) {
-           // process the current node and mark it
-           f_visit( node );
-           node->setMarked(true);
-
-           // go through each connecting node
-           auto iter = node->arcList().begin();
-           auto endIter = node->arcList().end();
-        
-		   for( ; iter != endIter; ++iter) {
-			    // process the linked node if it isn't already marked.
-                if ( (*iter).node()->marked() == false ) {
-                   depthFirst( (*iter).node(), f_visit);
-                }            
-           }
-     }
-}
-
-
-// ----------------------------------------------------------------
-//  Name:           breadthFirst
-//  Description:    Performs a depth-first traversal the starting node
-//                  specified as an input parameter.
-//  Arguments:      The first parameter is the starting node
-//                  The second parameter is the processing function.
-//  Return Value:   None.
-// ----------------------------------------------------------------
-template<class NodeType, class ArcType>
-void Graph<NodeType, ArcType>::breadthFirst( Node* node, std::function<void(Node *)> f_visit) {
-   if( nullptr != node ) {
-	  queue<Node*> nodeQueue;        
-	  // place the first node on the queue, and mark it.
-      nodeQueue.push( node );
-      node->setMarked(true);
-
-      // loop through the queue while there are nodes in it.
-      while( nodeQueue.size() != 0 ) {
-         // process the node at the front of the queue.
-		 f_visit( nodeQueue.front() );
-
-         // add all of the child nodes that have not been 
-         // marked into the queue
-         auto iter = nodeQueue.front()->arcList().begin();
-         auto endIter = nodeQueue.front()->arcList().end();
-         
-		 for( ; iter != endIter; iter++ ) {
-              if ( (*iter).node()->marked() == false) {
-				 // mark the node and add it to the queue.
-                 (*iter).node()->setMarked(true);
-                 nodeQueue.push( (*iter).node() );
-              }
-         }
-
-         // dequeue the current node.
-         nodeQueue.pop();
-      }
-   }  
-}
-
-
-// ----------------------------------------------------------------
-//  Name:           adaptedBreadthFirst
-//  Description:    Performs a breadth-first traversal the starting node
-//                  specified as an input parameter, terminating at the goal.
-//  Arguments:      The first parameter is the starting node.
-//                  The second parameter is the goal node.
-//  Return Value:   None.
-// ----------------------------------------------------------------
-template<class NodeType, class ArcType>
-void Graph<NodeType, ArcType>::adaptedBreadthFirst( Node* current, Node *goal ) {
-     
-}
-
 template<class NodeType, class ArcType>
 GraphNode<NodeType, ArcType>* Graph<NodeType, ArcType>::GetNodeFromPos(Vector2i pos) {
 	for (size_t i = 0; i < m_nodes.size(); i++)
@@ -403,8 +320,8 @@ void Graph<NodeType, ArcType>::ShowInfo(string info) {
 template<class NodeType, class ArcType>
 void Graph<NodeType, ArcType>::AStar() {
 	Reset();
-	thread* t1 = new thread(&Graph<NodeType, ArcType>::ShowInfo, this, "A Star");
 	Clock clock;
+	los = 0;
 
 	vector<Node*> closedList;
 	vector<Node*> openList = { start };
@@ -416,7 +333,7 @@ void Graph<NodeType, ArcType>::AStar() {
 	while (!openList.empty()) {
 		Node* cheapest;
 
-		float bestF = 9999999;
+		float bestF = INT_MAX;
 		float index = -1;
 
 		for (int i = 0; i < openList.size(); i++)
@@ -432,7 +349,7 @@ void Graph<NodeType, ArcType>::AStar() {
 		auto ite = openList.begin();
 		advance(ite, index);
 		openList.erase(ite);
-		Node* current = cheapest;// GetCheapestNode(openList);
+		Node* current = cheapest;
 		nodes++;
 		closedList.push_back(current);
 
@@ -470,8 +387,7 @@ void Graph<NodeType, ArcType>::AStar() {
 				}
 			}
 			if (!inOpen) {
-				neighbour->gValue = 99999999;
-				//neighbour->setPrevious(NULL);
+				neighbour->gValue = INT_MAX;
 			}
 			float oldGValue = neighbour->gValue;
 			if (current->gValue + arc.weight() < neighbour->gValue) {
@@ -495,8 +411,8 @@ void Graph<NodeType, ArcType>::AStar() {
 		}
 	}
 
-	float time = clock.getElapsedTime().asSeconds();
-	cout << "A* took " << time << " seconds." << endl;
+	float time = clock.getElapsedTime().asSeconds() * 1000;
+	cout << "A* took " << time  << " milliseconds." << endl;
 	int pathNodes = 0;
 	float pathLength = 0;
 	for (Node* node = goal; node != NULL; node = node->previous()) {
@@ -512,7 +428,14 @@ void Graph<NodeType, ArcType>::AStar() {
 	cout << nodes << " nodes expanded" << endl;
 	cout << nb << " neighbours checked" << endl;
 	cout << pathNodes << " nodes in the path" << endl;
-	t1->join();
+
+	savefile << "A* \n";
+	savefile << time << endl;
+	savefile << pathLength << endl;
+	savefile << nodes << endl;
+	savefile << nb << endl;
+	savefile << pathNodes << endl;
+	savefile << los << endl;
 }
 
 
@@ -526,7 +449,7 @@ template<class NodeType, class ArcType>
 GraphNode<NodeType, ArcType>* Graph<NodeType, ArcType>::GetCheapestNode(vector<Node*> openList) {
 	Node* cheapest;
 
-	float bestF = 9999;
+	float bestF = INT_MAX;
 	float index = -1;
 
 	for (int i = 0; i < openList.size(); i++)
@@ -558,7 +481,6 @@ template<class NodeType, class ArcType>
 void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 	Reset();
 
-	thread* t1 = new thread(&Graph<NodeType, ArcType>::ShowInfo, this, "Theta Star");
 	Clock clock;
 	vector<Node*> closedList;
 	vector<Node*> openList = { start };
@@ -571,7 +493,7 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 	while (!openList.empty()) {
 		Node* cheapest;
 
-		float bestF = 9999;
+		float bestF = INT_MAX;
 		float index = -1;
 
 		for (int i = 0; i < openList.size(); i++)
@@ -587,7 +509,7 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 		auto ite = openList.begin();
 		advance(ite, index);
 		openList.erase(ite);
-		Node* current = cheapest;//GetCheapestNode(openList);
+		Node* current = cheapest;
 		nodes++;
 		closedList.push_back(current);
 		//cout << "Checking current: " << current->data() << endl;
@@ -624,8 +546,7 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 				}
 			}
 			if (!inOpen) {
-				neighbour->gValue = 99999;
-				//neighbour->setPrevious(NULL);
+				neighbour->gValue = INT_MAX;
 			}
 			float oldGValue = neighbour->gValue;
 			if (LineOfSight(current->previous(), neighbour, image)) {
@@ -635,7 +556,6 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 					if (neighbour != current->previous()->previous()) {
 						neighbour->setPrevious(current->previous());
 					}
-					//if (neighbour->gValue < oldGValue) {
 						for (int i = 0; i < openList.size(); i++)
 						{
 							if (openList[i] == neighbour) {
@@ -645,7 +565,6 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 							}
 						}
 						openList.push_back(neighbour);
-					//}
 				}
 			}
 			else {
@@ -656,7 +575,6 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 						neighbour->setPrevious(current);
 					}
 
-					//if (neighbour->gValue < oldGValue) {
 					for (int i = 0; i < openList.size(); i++)
 					{
 						if (openList[i] == neighbour) {
@@ -666,19 +584,18 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 						}
 					}
 					openList.push_back(neighbour);
-					//}
 				}
 
 			}
 		}
 	}
 
-	float time = clock.getElapsedTime().asSeconds();
-	cout << "Theta* took " << time << " seconds." << endl;
-	int pathnodes = 0;
+	float time = clock.getElapsedTime().asSeconds() * 1000;
+	cout << "Theta* took " << time  << " milliseconds." << endl;
+	int pathNodes = 0;
 	float pathLength = 0;
 	for (Node* node = goal; node != NULL; node = node->previous()) {
-		pathnodes++;
+		pathNodes++;
 		if (node->previous()) {			
 			float a = abs(node->GetXPos() - node->previous()->GetXPos());
 			float b = abs(node->GetYPos() - node->previous()->GetYPos());
@@ -690,10 +607,16 @@ void Graph<NodeType, ArcType>::ThetaStar(sf::Image image) {
 	cout << "Length of the path is: " << pathLength << endl;
 	cout << nodes << " nodes expanded" << endl;
 	cout << nb << " neighbours checked" << endl;
-	cout << pathnodes << " nodes in the path" << endl;
+	cout << pathNodes << " nodes in the path" << endl;
 	cout << los << " of line-of-sight checks" << endl;
 
-	t1->join();
+	savefile << "Theta* \n";
+	savefile << time << endl;
+	savefile << pathLength << endl;
+	savefile << nodes << endl;
+	savefile << nb << endl;
+	savefile << pathNodes << endl;
+	savefile << los << endl;
 }
 
 // ----------------------------------------------------------------
@@ -708,7 +631,6 @@ template<class NodeType, class ArcType>
 void Graph<NodeType, ArcType>::LazyThetaStar(sf::Image image) {
 	Reset();
 	string g = "No Goal Found";
-	thread* t1 = new thread(&Graph<NodeType, ArcType>::ShowInfo, this, "Lazy Theta Star");
 	Clock clock;
 	vector<Node*> closedList;
 	vector<Node*> openList = { start };
@@ -721,7 +643,7 @@ void Graph<NodeType, ArcType>::LazyThetaStar(sf::Image image) {
 	while (!openList.empty()) {
 		Node* cheapest;
 
-		float bestF = 99999;
+		float bestF = INT_MAX;
 		float index = -1;
 
 		for (int i = 0; i < openList.size(); i++)
@@ -737,13 +659,11 @@ void Graph<NodeType, ArcType>::LazyThetaStar(sf::Image image) {
 		auto ite = openList.begin();
 		advance(ite, index);
 		openList.erase(ite);
-		//cheapest = openList.back();
-		//openList.pop_back();
-		Node* current = cheapest;//GetCheapestNode(openList);
+		Node* current = cheapest;
 		nodes++;
 
 		if (!(LineOfSight(current->previous(), current, image))) {
-			current->gValue = 999999;
+			current->gValue = INT_MAX;
 			typedef list<Arc> arclist;
 			list<Arc> arcs = current->arcList();
 			auto it = arcs.begin();
@@ -757,7 +677,6 @@ void Graph<NodeType, ArcType>::LazyThetaStar(sf::Image image) {
 						float newG = neighbour->gValue + current->Euclidean(neighbour);
 						if (newG <= current->gValue) {
 							current->gValue = newG;
-							//current->hValue = current->Euclidean(goal);
 							current->setPrevious(neighbour);
 						}
 
@@ -803,8 +722,7 @@ void Graph<NodeType, ArcType>::LazyThetaStar(sf::Image image) {
 				}
 			}
 			if (!inOpen) {
-				neighbour->gValue = 99999;
-				//neighbour->setPrevious(NULL);
+				neighbour->gValue = INT_MAX;
 			}
 			float newG = current->previous()->gValue + current->previous()->Euclidean(neighbour);
 			if (newG <= neighbour->gValue) {
@@ -829,8 +747,8 @@ void Graph<NodeType, ArcType>::LazyThetaStar(sf::Image image) {
 	}
 	cout << g << endl;
 
-	float time = clock.getElapsedTime().asSeconds();
-	cout << "Lazy Theta* took " << time << " seconds." << endl;
+	float time = clock.getElapsedTime().asSeconds() * 1000;
+	cout << "Lazy Theta* took " << time  << " milliseconds." << endl;
 	int pathNodes = 0;
 	float pathLength = 0;
 	for (Node* node = goal; node != NULL; node = node->previous()) {
@@ -849,7 +767,13 @@ void Graph<NodeType, ArcType>::LazyThetaStar(sf::Image image) {
 	cout << pathNodes << " nodes in the path" << endl;
 	cout << los << " line-of-sight checks" << endl;
 
-	t1->join();
+	savefile << "Lazy Theta* \n";
+	savefile << time << endl;
+	savefile << pathLength << endl;
+	savefile << nodes << endl;
+	savefile << nb << endl;
+	savefile << pathNodes << endl;
+	savefile << los <<  endl;
 }
 
 // ----------------------------------------------------------------
@@ -861,7 +785,7 @@ void Graph<NodeType, ArcType>::LazyThetaStar(sf::Image image) {
 // ----------------------------------------------------------------
 template<class NodeType, class ArcType>
 bool Graph<NodeType, ArcType>::LineOfSight(Node* current, Node *neighbour, sf::Image image) {
-	if (!current || !neighbour ) { return false; } //||current == neighbour
+	if (!current || !neighbour ) { return false; } 
 	los++;
 	Vector2f line(neighbour->GetXPos() - current->GetXPos(),  neighbour->GetYPos() - current->GetYPos());
 	//normalize the vector

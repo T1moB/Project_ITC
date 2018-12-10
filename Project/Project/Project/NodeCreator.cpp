@@ -149,4 +149,6 @@ void NodeCreator::Create2(int s) {
 			}
 		}
 	}
+	arcsFile.close();
+	nodesFile.close();
 }

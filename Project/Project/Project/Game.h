@@ -3,7 +3,7 @@
 #include "Grid.h"
 #include "MainGraph.h"
 
-#define GRAPHSIZE 20
+#define GRAPHSIZE 50
 
 class Game
 {

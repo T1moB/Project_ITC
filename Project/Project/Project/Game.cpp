@@ -65,6 +65,17 @@ void Game::Update() {
 			isPressed = true;
 		}
 	}
+	else if (GetKeyState('A') & 0x8000) {
+		if (!isPressed) {
+			Vector2u windowSize = m_window.getSize();
+			Texture texture;
+			texture.create(windowSize.x, windowSize.y);
+			texture.update(m_window);
+			Image image = texture.copyToImage();
+			mg.Run(image);
+			isPressed = true;
+		}
+	}
 	else if (GetKeyState('C') & 0x8000) {
 		if (!isPressed) {
 			Vector2u windowSize = m_window.getSize();
@@ -96,8 +107,7 @@ void Game::Draw() {
 
 	m_window.clear();
 	grid.DrawFromGraph(&mg.m_graph);
-	mg.Draw(m_window);
-	//grid.Draw();
+	//mg.Draw(m_window);
 	m_window.display();
 }
 
@@ -105,6 +115,3 @@ bool Game::IsRunning() {
 	return m_window.isOpen();
 }
 
-/*Game::~Game()
-{
-}*/
